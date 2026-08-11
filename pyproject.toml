@@ -1,0 +1,87 @@
+[build-system]
+requires = ["hatchling>=1.25,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "farebeacon"
+version = "0.1.0"
+description = "Agent-friendly open-source airfare monitoring hub"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [{ name = "Eduardo Cecilio" }]
+keywords = ["airfare", "flights", "monitoring", "fastapi", "celery"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Framework :: FastAPI",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+]
+dependencies = [
+  "alembic>=1.13,<2",
+  "celery[redis]>=5.4,<6",
+  "fastapi>=0.115,<1",
+  "httpx>=0.27,<1",
+  "jinja2>=3.1,<4",
+  "psycopg[binary]>=3.2,<4",
+  "pydantic>=2.9,<3",
+  "pydantic-settings>=2.5,<3",
+  "redis>=5,<6",
+  "sqlalchemy>=2.0,<3",
+  "uvicorn[standard]>=0.30,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx2>=2.10,<3",
+  "mypy>=1.11,<2",
+  "pytest>=8.3,<9",
+  "pytest-cov>=5,<7",
+  "ruff>=0.6,<1",
+]
+
+[project.urls]
+Documentation = "https://github.com/eduardocecilio/farebeacon#readme"
+Issues = "https://github.com/eduardocecilio/farebeacon/issues"
+Source = "https://github.com/eduardocecilio/farebeacon"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/farebeacon"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"migrations/versions/*.py" = ["E501"]
+"tests/conftest.py" = ["E402"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+cache_dir = ".test/.pytest_cache"
+testpaths = ["tests"]
+markers = [
+  "integration: crosses an application infrastructure boundary",
+  "contract: validates a source contract",
+  "end_to_end: exercises the complete MockSource flow",
+]
+
+[tool.coverage.run]
+branch = true
+data_file = ".test/.coverage"
+source = ["farebeacon"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80
+
+[tool.mypy]
+cache_dir = ".test/.mypy_cache"
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]

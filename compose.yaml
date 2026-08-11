@@ -1,0 +1,227 @@
+x-app-common: &app-common
+  image: farebeacon:local
+  pull_policy: never
+  build:
+    context: .
+    dockerfile: docker/api.Dockerfile
+    target: runtime
+  env_file:
+    - path: .env
+      required: true
+  environment:
+    FAREBEACON_DATABASE_URL: postgresql+psycopg://farebeacon:${FAREBEACON_POSTGRES_PASSWORD:?set FAREBEACON_POSTGRES_PASSWORD in .env}@postgres:5432/farebeacon
+    FAREBEACON_REDIS_URL: redis://redis:6379/0
+    FAREBEACON_ARTIFACTS_ROOT: /var/lib/farebeacon/artifacts
+    TZ: ${TZ:-America/Sao_Paulo}
+  init: true
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  networks:
+    - internal
+  logging: &default-logging
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+  deploy:
+    resources:
+      limits:
+        cpus: "1.0"
+        memory: 512M
+
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    container_name: farebeacon-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: farebeacon
+      POSTGRES_USER: farebeacon
+      POSTGRES_PASSWORD: ${FAREBEACON_POSTGRES_PASSWORD:?set FAREBEACON_POSTGRES_PASSWORD in .env}
+      TZ: ${TZ:-America/Sao_Paulo}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U farebeacon -d farebeacon"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+
+  redis:
+    image: redis:7.2.5-alpine
+    container_name: farebeacon-redis
+    user: redis
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-America/Sao_Paulo}
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  migrate:
+    <<: *app-common
+    container_name: farebeacon-migrate
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  api:
+    <<: *app-common
+    container_name: farebeacon-api
+    command: ["uvicorn", "farebeacon.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "127.0.0.1:${FAREBEACON_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  scheduler:
+    <<: *app-common
+    container_name: farebeacon-scheduler
+    command:
+      [
+        "celery",
+        "-A",
+        "farebeacon.tasks.celery_app:celery_app",
+        "beat",
+        "--loglevel=INFO",
+        "--schedule=/tmp/celerybeat-schedule",
+      ]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  orchestration-worker:
+    <<: *app-common
+    container_name: farebeacon-orchestration-worker
+    command:
+      [
+        "celery",
+        "-A",
+        "farebeacon.tasks.celery_app:celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=orchestration,maintenance",
+        "--concurrency=1",
+      ]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  mock-worker:
+    <<: *app-common
+    container_name: farebeacon-mock-worker
+    command:
+      [
+        "celery",
+        "-A",
+        "farebeacon.tasks.celery_app:celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=source.mock",
+        "--concurrency=2",
+      ]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  normalization-worker:
+    <<: *app-common
+    container_name: farebeacon-normalization-worker
+    command:
+      [
+        "celery",
+        "-A",
+        "farebeacon.tasks.celery_app:celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=normalize",
+        "--concurrency=2",
+      ]
+    volumes:
+      - artifacts:/var/lib/farebeacon/artifacts
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+networks:
+  internal:
+    name: farebeacon-internal
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: farebeacon-postgres-data
+  redis_data:
+    name: farebeacon-redis-data
+  artifacts:
+    name: farebeacon-artifacts

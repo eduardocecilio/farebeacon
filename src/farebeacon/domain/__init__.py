@@ -1,0 +1,1 @@
+"""Supplier-agnostic domain types."""
