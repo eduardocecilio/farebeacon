@@ -5,13 +5,16 @@ x-app-common: &app-common
     context: .
     dockerfile: docker/api.Dockerfile
     target: runtime
-  env_file:
-    - path: .env
-      required: true
-  environment:
+  environment: &app-environment
+    FAREBEACON_ENV: ${FAREBEACON_ENV:-development}
     FAREBEACON_DATABASE_URL: postgresql+psycopg://farebeacon:${FAREBEACON_POSTGRES_PASSWORD:?set FAREBEACON_POSTGRES_PASSWORD in .env}@postgres:5432/farebeacon
     FAREBEACON_REDIS_URL: redis://redis:6379/0
     FAREBEACON_ARTIFACTS_ROOT: /var/lib/farebeacon/artifacts
+    FAREBEACON_LOG_LEVEL: ${FAREBEACON_LOG_LEVEL:-INFO}
+    FAREBEACON_CELERY_TASK_ALWAYS_EAGER: ${FAREBEACON_CELERY_TASK_ALWAYS_EAGER:-false}
+    FAREBEACON_DEFAULT_SOURCE_TIMEOUT_SECONDS: ${FAREBEACON_DEFAULT_SOURCE_TIMEOUT_SECONDS:-30}
+    FAREBEACON_MAX_REQUEST_BODY_BYTES: ${FAREBEACON_MAX_REQUEST_BODY_BYTES:-1048576}
+    FAREBEACON_MAX_SOURCE_PAYLOAD_BYTES: ${FAREBEACON_MAX_SOURCE_PAYLOAD_BYTES:-4194304}
     TZ: ${TZ:-America/Sao_Paulo}
   init: true
   restart: unless-stopped
@@ -37,8 +40,13 @@ x-app-common: &app-common
 
 services:
   postgres:
-    image: postgres:16.4-alpine
+    image: farebeacon-postgres:local
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: docker/postgres.Dockerfile
     container_name: farebeacon-postgres
+    user: postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: farebeacon
@@ -58,12 +66,6 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
-      - FOWNER
-      - SETGID
-      - SETUID
     logging: *default-logging
     deploy:
       resources:
@@ -72,7 +74,7 @@ services:
           memory: 768M
 
   redis:
-    image: redis:7.2.5-alpine
+    image: redis:7.2.15-alpine@sha256:05a97a479bc73de66f087dc05b569010772880f778cc8671fa6b8aadee32e5c6
     container_name: farebeacon-redis
     user: redis
     command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
@@ -116,9 +118,15 @@ services:
   api:
     <<: *app-common
     container_name: farebeacon-api
+    environment:
+      <<: *app-environment
+      FAREBEACON_API_TOKEN: ${FAREBEACON_API_TOKEN:?set FAREBEACON_API_TOKEN in .env}
     command: ["uvicorn", "farebeacon.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "127.0.0.1:${FAREBEACON_PORT:-8000}:8000"
+    networks:
+      - internal
+      - ingress
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -216,6 +224,10 @@ services:
 networks:
   internal:
     name: farebeacon-internal
+    driver: bridge
+    internal: true
+  ingress:
+    name: farebeacon-ingress
     driver: bridge
 
 volumes:

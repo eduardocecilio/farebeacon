@@ -51,6 +51,8 @@ List operations accept one-based `page` and `page_size` from 1 to 100. Page data
 - `RUN_ALREADY_ACTIVE`
 - `SOURCE_NOT_FOUND`
 - `SOURCE_DISABLED`
+- `SOURCE_RATE_LIMITED`
+- `SOURCE_QUOTA_EXCEEDED`
 - `SOURCE_TEMPORARILY_UNAVAILABLE`
 - `SOURCE_CONTRACT_CHANGED`
 - `NO_VALID_OFFERS`
@@ -58,4 +60,3 @@ List operations accept one-based `page` and `page_size` from 1 to 100. Page data
 - `INTERNAL_ERROR`
 
 The generated OpenAPI document is the authoritative schema.
-

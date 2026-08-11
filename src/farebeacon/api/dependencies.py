@@ -32,10 +32,11 @@ def require_authentication(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> None:
+    configured_token = settings.require_api_token()
     valid = (
         credentials is not None
         and credentials.scheme.lower() == "bearer"
-        and secrets.compare_digest(credentials.credentials, settings.api_token)
+        and secrets.compare_digest(credentials.credentials, configured_token)
     )
     if not valid:
         raise AppError(

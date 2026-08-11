@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from farebeacon.api.schemas import OfferRead, PriceHistoryRead, SegmentRead
@@ -21,29 +21,47 @@ def list_latest_offers(
     page_size: int,
 ) -> tuple[list[OfferRead], int]:
     get_monitor(session, monitor_id)
+    ranked = (
+        select(
+            QuoteObservation.id.label("observation_id"),
+            QuoteObservation.observed_at.label("observed_at"),
+            func.row_number()
+            .over(
+                partition_by=QuoteObservation.quote_id,
+                order_by=(
+                    QuoteObservation.observed_at.desc(),
+                    QuoteObservation.created_at.desc(),
+                    QuoteObservation.id.desc(),
+                ),
+            )
+            .label("position"),
+        )
+        .join(SearchRun, SearchRun.id == QuoteObservation.search_run_id)
+        .where(SearchRun.monitor_id == monitor_id)
+        .subquery()
+    )
+    total = (
+        session.scalar(select(func.count()).select_from(ranked).where(ranked.c.position == 1)) or 0
+    )
     observations = list(
         session.scalars(
             select(QuoteObservation)
-            .join(SearchRun, SearchRun.id == QuoteObservation.search_run_id)
-            .where(SearchRun.monitor_id == monitor_id)
+            .join(ranked, ranked.c.observation_id == QuoteObservation.id)
+            .where(ranked.c.position == 1)
             .options(
                 joinedload(QuoteObservation.quote)
                 .joinedload(Quote.itinerary)
                 .selectinload(Itinerary.segments),
                 joinedload(QuoteObservation.source_run),
             )
-            .order_by(QuoteObservation.observed_at.desc())
+            .order_by(ranked.c.observed_at.desc(), QuoteObservation.id.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
         )
         .unique()
         .all()
     )
-    latest_by_quote: dict[str, QuoteObservation] = {}
-    for observation in observations:
-        latest_by_quote.setdefault(observation.quote_id, observation)
-    latest = list(latest_by_quote.values())
-    total = len(latest)
-    selected = latest[(page - 1) * page_size : page * page_size]
-    return [_offer_to_read(item) for item in selected], total
+    return [_offer_to_read(item) for item in observations], total
 
 
 def list_price_history(
@@ -54,6 +72,14 @@ def list_price_history(
     page_size: int,
 ) -> tuple[list[PriceHistoryRead], int]:
     get_monitor(session, monitor_id)
+    total = (
+        session.scalar(
+            select(func.count(QuoteObservation.id))
+            .join(SearchRun, SearchRun.id == QuoteObservation.search_run_id)
+            .where(SearchRun.monitor_id == monitor_id)
+        )
+        or 0
+    )
     observations = list(
         session.scalars(
             select(QuoteObservation)
@@ -64,10 +90,10 @@ def list_price_history(
                 joinedload(QuoteObservation.source_run),
             )
             .order_by(QuoteObservation.observed_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
         ).all()
     )
-    total = len(observations)
-    selected = observations[(page - 1) * page_size : page * page_size]
     return [
         PriceHistoryRead(
             observation_id=item.id,
@@ -79,7 +105,7 @@ def list_price_history(
             currency=item.currency,
             observed_at=item.observed_at,
         )
-        for item in selected
+        for item in observations
     ], total
 
 

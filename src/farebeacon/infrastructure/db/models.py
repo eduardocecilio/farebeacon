@@ -281,7 +281,7 @@ class RawArtifact(Base):
     content_type: Mapped[str] = mapped_column(String(100))
     sha256: Mapped[str] = mapped_column(String(64))
     size_bytes: Mapped[int] = mapped_column(Integer)
-    is_sanitized: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_sanitized: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 

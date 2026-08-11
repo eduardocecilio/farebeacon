@@ -19,4 +19,5 @@ secrets/
 build/
 dist/
 htmlcov/
+out/
 docker-compose.override.yml

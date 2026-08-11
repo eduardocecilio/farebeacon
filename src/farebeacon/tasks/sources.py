@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from datetime import date
 from typing import Any
@@ -72,9 +73,19 @@ def execute_source_run(source_run_id: str) -> dict[str, Any]:
             True,
         )
 
+    serialized_batches = [serialize_batch(batch) for batch in batches]
+    payload_size = len(
+        json.dumps(serialized_batches, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    )
+    if payload_size > get_settings().max_source_payload_bytes:
+        return _failure(
+            "SOURCE_CONTRACT_CHANGED",
+            "The source payload exceeded the configured size limit.",
+            False,
+        )
     return {
         "status": "fetched",
-        "batches": [serialize_batch(batch) for batch in batches],
+        "batches": serialized_batches,
     }
 
 

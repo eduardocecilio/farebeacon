@@ -87,11 +87,16 @@ def create_monitor(
         next_run_at=datetime.now(UTC) + timedelta(minutes=payload.schedule.interval_minutes),
     )
     for priority, source_name in enumerate(payload.sources):
+        source_configuration = payload.source_configuration.get(source_name)
         monitor.sources.append(
             MonitorSource(
                 source_name=source_name,
                 priority=priority,
-                configuration=payload.source_configuration.get(source_name, {}),
+                configuration=(
+                    source_configuration.model_dump(mode="json", exclude_none=True)
+                    if source_configuration is not None
+                    else {}
+                ),
             )
         )
     if payload.alerts.new_historical_low:

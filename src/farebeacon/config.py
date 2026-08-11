@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,22 +17,33 @@ class Settings(BaseSettings):
 
     env: str = "development"
     version: str = "0.1.0"
-    api_token: str = "development-only-token-change-me"
+    api_token: SecretStr | None = None
     database_url: str = "sqlite+pysqlite:///./farebeacon.db"
     redis_url: str = "redis://127.0.0.1:6379/0"
     artifacts_root: Path = Path(".artifacts")
     log_level: str = "INFO"
     celery_task_always_eager: bool = False
     default_source_timeout_seconds: int = Field(default=30, ge=1, le=300)
+    max_request_body_bytes: int = Field(default=1_048_576, ge=1024, le=10_485_760)
+    max_source_payload_bytes: int = Field(default=4_194_304, ge=1024, le=52_428_800)
 
     @model_validator(mode="after")
     def reject_insecure_production_configuration(self) -> Settings:
+        if self.api_token is not None:
+            token = self.api_token.get_secret_value()
+            if len(token) < 32 or "change-me" in token.lower():
+                raise ValueError("API token must be at least 32 characters and not a placeholder")
         if self.env.lower() == "production":
-            if len(self.api_token) < 32 or "change-me" in self.api_token:
-                raise ValueError("production API token must be at least 32 characters")
+            if self.api_token is None:
+                raise ValueError("production API token is required")
             if self.database_url.startswith("sqlite"):
                 raise ValueError("production must use PostgreSQL")
         return self
+
+    def require_api_token(self) -> str:
+        if self.api_token is None:
+            raise ValueError("FAREBEACON_API_TOKEN is required by the HTTP API")
+        return self.api_token.get_secret_value()
 
 
 @lru_cache(maxsize=1)

@@ -69,3 +69,74 @@ def test_validation_rejects_offer_over_stop_limit() -> None:
     )[0]
     with pytest.raises(OfferValidationError):
         validate_offer(parsed, query)
+
+
+@pytest.mark.parametrize(
+    "booking_url",
+    [
+        "javascript:alert(1)",
+        "http://example.com/book",
+        "https://user:password@example.com/book",
+        "https://127.0.0.1/book",
+        "https://example.com:8443/book",
+    ],
+)
+def test_validation_rejects_unsafe_booking_urls(booking_url: str) -> None:
+    query = SearchQuery(
+        origin="BSB",
+        destination="PVH",
+        departure_date=date(2030, 7, 10),
+        return_date=None,
+        adults=1,
+        children=0,
+        infants=0,
+        cabin_class="economy",
+        currency="BRL",
+        max_stops=1,
+    )
+    context = SourceExecutionContext(
+        run_id="run_test",
+        source_run_id="srun_test",
+        timeout_seconds=1,
+        correlation_id="run_test",
+    )
+    import asyncio
+
+    batch = asyncio.run(MockSource().fetch(query, context))
+    offer = MockSourceParser().normalize(
+        batch.items[0],
+        query=query,
+        observed_at=batch.observed_at,
+    )[0]
+    with pytest.raises(OfferValidationError):
+        validate_offer(replace(offer, booking_url=booking_url), query)
+
+
+def test_validation_accepts_public_https_booking_url() -> None:
+    query = SearchQuery(
+        origin="BSB",
+        destination="PVH",
+        departure_date=date(2030, 7, 10),
+        return_date=None,
+        adults=1,
+        children=0,
+        infants=0,
+        cabin_class="economy",
+        currency="BRL",
+        max_stops=1,
+    )
+    context = SourceExecutionContext(
+        run_id="run_test",
+        source_run_id="srun_test",
+        timeout_seconds=1,
+        correlation_id="run_test",
+    )
+    import asyncio
+
+    batch = asyncio.run(MockSource().fetch(query, context))
+    offer = MockSourceParser().normalize(
+        batch.items[0],
+        query=query,
+        observed_at=batch.observed_at,
+    )[0]
+    validate_offer(replace(offer, booking_url="https://booking.example.com/offer/123"), query)

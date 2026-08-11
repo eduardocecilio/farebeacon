@@ -181,7 +181,7 @@ def _persist_artifact(
         content_type=stored.content_type,
         sha256=stored.sha256,
         size_bytes=stored.size_bytes,
-        is_sanitized=True,
+        is_sanitized=False,
     )
     session.add(artifact)
     session.flush()

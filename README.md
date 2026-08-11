@@ -154,6 +154,7 @@ make lint
 make typecheck
 make test
 make openapi
+make lock  # only after changing dependency declarations
 docker compose logs -f --tail=200
 docker compose down
 ```
@@ -164,9 +165,10 @@ independent workers.
 
 ## Deployment
 
-The full stack needs long-running workers and a scheduler, so it is designed for Docker hosts such
-as a small server or homelab. Vercel is not a target for the complete application. See
-[docs/operations.md](docs/operations.md) before promoting it beyond local development.
+The full stack needs long-running workers and a scheduler, so it cannot run entirely on Vercel. A
+future hybrid deployment may put only the stateless HTTP API/web edge on Vercel while PostgreSQL,
+Redis, Celery workers, and Beat run on managed persistent services. That adapter is intentionally
+not claimed as production-ready in this release. See [docs/operations.md](docs/operations.md).
 
 ## Source policy
 

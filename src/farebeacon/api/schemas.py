@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -27,8 +27,26 @@ class PageData[T](StrictModel):
     total: int
 
 
+type ErrorCode = Literal[
+    "VALIDATION_ERROR",
+    "AUTHENTICATION_REQUIRED",
+    "MONITOR_NOT_FOUND",
+    "RUN_NOT_FOUND",
+    "RUN_ALREADY_ACTIVE",
+    "SOURCE_NOT_FOUND",
+    "SOURCE_DISABLED",
+    "SOURCE_RATE_LIMITED",
+    "SOURCE_QUOTA_EXCEEDED",
+    "SOURCE_TEMPORARILY_UNAVAILABLE",
+    "SOURCE_CONTRACT_CHANGED",
+    "NO_VALID_OFFERS",
+    "IDEMPOTENCY_CONFLICT",
+    "INTERNAL_ERROR",
+]
+
+
 class ErrorBody(StrictModel):
-    code: str
+    code: ErrorCode
     message: str
     details: dict[str, Any] = Field(default_factory=dict)
 
@@ -36,6 +54,42 @@ class ErrorBody(StrictModel):
 class ErrorResponse(StrictModel):
     error: ErrorBody
     meta: ResponseMeta
+
+
+def _error_response(description: str, code: ErrorCode) -> dict[str, Any]:
+    return {
+        "model": ErrorResponse,
+        "description": description,
+        "headers": {
+            "X-Request-ID": {
+                "description": "Stable request correlation identifier.",
+                "schema": {"type": "string"},
+            }
+        },
+        "content": {
+            "application/json": {
+                "example": {
+                    "error": {
+                        "code": code,
+                        "message": description,
+                        "details": {},
+                    },
+                    "meta": {"request_id": "req_01JEXAMPLE0000000000000000"},
+                }
+            }
+        },
+    }
+
+
+COMMON_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    400: _error_response("The request is invalid.", "VALIDATION_ERROR"),
+    401: _error_response("Authentication is required.", "AUTHENTICATION_REQUIRED"),
+    404: _error_response("The requested resource was not found.", "MONITOR_NOT_FOUND"),
+    409: _error_response("The request conflicts with current state.", "IDEMPOTENCY_CONFLICT"),
+    413: _error_response("The request body is too large.", "VALIDATION_ERROR"),
+    422: _error_response("The request payload is invalid.", "VALIDATION_ERROR"),
+    500: _error_response("An unexpected internal error occurred.", "INTERNAL_ERROR"),
+}
 
 
 class RouteInput(StrictModel):
@@ -84,6 +138,13 @@ class AlertsInput(StrictModel):
     price_below_minor: int | None = Field(default=None, gt=0)
 
 
+class MockSourceConfiguration(StrictModel):
+    schema_version: Literal["1"] = "1"
+    mode: Literal["success", "error", "timeout", "empty"] = "success"
+    base_price_minor: int | None = Field(default=None, gt=0, le=1_000_000_000)
+    duplicate_first: bool = False
+
+
 class MonitorCreate(StrictModel):
     name: str = Field(min_length=1, max_length=200)
     route: RouteInput
@@ -92,7 +153,14 @@ class MonitorCreate(StrictModel):
     passengers: PassengersInput = Field(default_factory=PassengersInput)
     filters: FiltersInput = Field(default_factory=FiltersInput)
     sources: list[str] = Field(min_length=1, max_length=10, examples=[["mock"]])
-    source_configuration: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    source_configuration: dict[str, MockSourceConfiguration] = Field(
+        default_factory=dict,
+        max_length=10,
+        description=(
+            "Per-source configuration. The first release exposes only the strict MockSource "
+            "contract; future adapters add versioned schemas before accepting configuration."
+        ),
+    )
     schedule: ScheduleInput = Field(default_factory=ScheduleInput)
     alerts: AlertsInput = Field(default_factory=AlertsInput)
 

@@ -22,6 +22,7 @@ def create_app(
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
     resolved_database = app_database or database
+    resolved_settings.require_api_token()
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:

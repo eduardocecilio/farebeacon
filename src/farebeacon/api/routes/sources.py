@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from farebeacon.api.dependencies import get_db, require_authentication
 from farebeacon.api.errors import AppError
 from farebeacon.api.responses import success
-from farebeacon.api.schemas import ApiResponse, PageData, SourceRead
+from farebeacon.api.schemas import COMMON_ERROR_RESPONSES, ApiResponse, PageData, SourceRead
 from farebeacon.infrastructure.db.models import SourceDefinition
 from farebeacon.sources.registry import RegisteredSource, get_source_registry
 
@@ -17,6 +17,7 @@ router = APIRouter(
     prefix="/api/v1/sources",
     tags=["sources"],
     dependencies=[Depends(require_authentication)],
+    responses=COMMON_ERROR_RESPONSES,
 )
 
 

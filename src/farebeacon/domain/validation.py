@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import ipaddress
 from datetime import datetime
+from urllib.parse import urlsplit
 
 from farebeacon.domain.exceptions import OfferValidationError
 from farebeacon.domain.money import currency_exponent
@@ -26,6 +28,8 @@ def validate_offer(offer: NormalizedOffer, query: SearchQuery) -> None:
         )
     if not 0 <= offer.confidence_score <= 1:
         raise OfferValidationError("confidence_score must be between 0 and 1")
+    if offer.booking_url is not None:
+        _validate_booking_url(offer.booking_url)
     if not offer.segments:
         raise OfferValidationError("at least one segment is required")
 
@@ -58,3 +62,24 @@ def validate_offer(offer: NormalizedOffer, query: SearchQuery) -> None:
             raise OfferValidationError("round-trip offer has no return leg")
         if inbound[0].origin != query.destination or inbound[-1].destination != query.origin:
             raise OfferValidationError("return leg does not match query")
+
+
+def _validate_booking_url(value: str) -> None:
+    try:
+        parsed = urlsplit(value)
+        hostname = parsed.hostname
+        port = parsed.port
+    except ValueError as exc:
+        raise OfferValidationError("booking_url is invalid") from exc
+    if parsed.scheme.lower() != "https" or hostname is None or parsed.username or parsed.password:
+        raise OfferValidationError("booking_url must be an absolute HTTPS URL without credentials")
+    if port not in {None, 443}:
+        raise OfferValidationError("booking_url must use the default HTTPS port")
+    if hostname.lower() == "localhost":
+        raise OfferValidationError("booking_url cannot target a local address")
+    try:
+        address = ipaddress.ip_address(hostname)
+    except ValueError:
+        return
+    if not address.is_global:
+        raise OfferValidationError("booking_url cannot target a private or reserved address")

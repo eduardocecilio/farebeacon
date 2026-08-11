@@ -12,7 +12,13 @@ from farebeacon.api.dependencies import (
     require_idempotency_key,
 )
 from farebeacon.api.responses import success
-from farebeacon.api.schemas import ApiResponse, MonitorCreate, MonitorRead, PageData
+from farebeacon.api.schemas import (
+    COMMON_ERROR_RESPONSES,
+    ApiResponse,
+    MonitorCreate,
+    MonitorRead,
+    PageData,
+)
 from farebeacon.application.monitors import (
     create_monitor,
     get_monitor,
@@ -25,6 +31,7 @@ router = APIRouter(
     prefix="/api/v1/monitors",
     tags=["monitors"],
     dependencies=[Depends(require_authentication)],
+    responses=COMMON_ERROR_RESPONSES,
 )
 
 

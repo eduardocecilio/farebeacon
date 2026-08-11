@@ -11,11 +11,15 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FAREBEACON_API_TOKEN: ci-only-token-with-at-least-thirty-two-characters
+      FAREBEACON_POSTGRES_PASSWORD: ci-only-database-password
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Build isolated test image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: docker/api.Dockerfile
@@ -24,6 +28,17 @@ jobs:
           tags: farebeacon:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Build and verify runtime images
+        run: |
+          docker build --target runtime -t farebeacon:runtime -f docker/api.Dockerfile .
+          docker build -t farebeacon-postgres:test -f docker/postgres.Dockerfile .
+          docker run --rm --entrypoint sh farebeacon:runtime -c \
+            'test "$(id -u)" = 10001 && ! test -e /usr/local/bin/pip'
+          docker run --rm --entrypoint sh farebeacon:test -c \
+            'test "$(id -u)" = 10001 && ! test -e /usr/local/bin/pip'
+          docker run --rm --entrypoint sh farebeacon-postgres:test -c \
+            'test "$(id -u)" = 70 && ! test -e /usr/local/bin/gosu'
+          docker compose config --quiet
       - name: Ruff
         run: |
           docker run --rm farebeacon:test ruff check .
@@ -33,4 +48,8 @@ jobs:
       - name: Tests
         run: docker run --rm farebeacon:test pytest --cov=farebeacon --cov-report=term-missing
       - name: OpenAPI generation
-        run: docker run --rm farebeacon:test python -m farebeacon.scripts.export_openapi /home/farebeacon/openapi.json
+        run: >-
+          docker run --rm
+          -e FAREBEACON_API_TOKEN
+          farebeacon:test
+          python -m farebeacon.scripts.export_openapi /home/farebeacon/openapi.json

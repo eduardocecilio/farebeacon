@@ -52,6 +52,24 @@ def test_complete_mock_source_flow(
     )
     assert history_after.json()["data"]["total"] == 4
 
+    second_run = client.post(
+        f"/api/v1/monitors/{monitor_id}/runs",
+        headers={**auth_headers, "Idempotency-Key": "second-manual-run"},
+    )
+    assert second_run.status_code == 202
+    paged_offers = client.get(
+        f"/api/v1/monitors/{monitor_id}/offers?page=1&page_size=1",
+        headers=auth_headers,
+    ).json()["data"]
+    paged_history = client.get(
+        f"/api/v1/monitors/{monitor_id}/price-history?page=1&page_size=1",
+        headers=auth_headers,
+    ).json()["data"]
+    assert len(paged_offers["items"]) == 1
+    assert paged_offers["total"] == 4
+    assert len(paged_history["items"]) == 1
+    assert paged_history["total"] == 8
+
 
 def test_partial_source_failure_preserves_valid_results(
     client: TestClient,

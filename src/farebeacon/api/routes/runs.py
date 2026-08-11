@@ -14,7 +14,7 @@ from farebeacon.api.dependencies import (
 )
 from farebeacon.api.errors import AppError
 from farebeacon.api.responses import success
-from farebeacon.api.schemas import ApiResponse, PageData, RunQueued, RunRead
+from farebeacon.api.schemas import COMMON_ERROR_RESPONSES, ApiResponse, PageData, RunQueued, RunRead
 from farebeacon.application.runs import (
     create_search_run,
     get_search_run,
@@ -24,7 +24,11 @@ from farebeacon.application.runs import (
 from farebeacon.domain.enums import RunStatus
 from farebeacon.tasks.orchestration import orchestrate_run
 
-router = APIRouter(tags=["runs"], dependencies=[Depends(require_authentication)])
+router = APIRouter(
+    tags=["runs"],
+    dependencies=[Depends(require_authentication)],
+    responses=COMMON_ERROR_RESPONSES,
+)
 
 
 @router.post(

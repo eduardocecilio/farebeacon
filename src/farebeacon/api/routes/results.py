@@ -7,13 +7,20 @@ from sqlalchemy.orm import Session
 
 from farebeacon.api.dependencies import get_db, pagination, require_authentication
 from farebeacon.api.responses import success
-from farebeacon.api.schemas import ApiResponse, OfferRead, PageData, PriceHistoryRead
+from farebeacon.api.schemas import (
+    COMMON_ERROR_RESPONSES,
+    ApiResponse,
+    OfferRead,
+    PageData,
+    PriceHistoryRead,
+)
 from farebeacon.application.results import list_latest_offers, list_price_history
 
 router = APIRouter(
     prefix="/api/v1/monitors/{monitor_id}",
     tags=["results"],
     dependencies=[Depends(require_authentication)],
+    responses=COMMON_ERROR_RESPONSES,
 )
 
 

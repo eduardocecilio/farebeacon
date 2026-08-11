@@ -30,16 +30,17 @@ Back up:
 Redis is a broker/cache, not the source of truth. The local Compose volumes are developer-friendly;
 a production deployment should map durable data to explicitly managed external volumes.
 
-## Mini deployment boundary
+## Ephemeral Docker acceptance boundary
 
-The current Compose file is a local acceptance stack, not a production promotion. A Mini deployment
-requires a separate reviewed stack with managed secrets, external volumes, backup jobs, a private
-ingress network, resource sizing, and live post-deploy checks. Merging code and promoting a stack are
-separate events.
+The current Compose file is a local acceptance stack, not a production promotion. Running it on a
+remote Docker host for acceptance does not make that host a deployment target; remove containers,
+networks, volumes, scanner caches, and temporary credentials after the test. A permanent deployment
+requires a separately reviewed stack with managed secrets, external volumes, backups, private data
+networks, resource sizing, and live post-deploy checks.
 
 ## Vercel
 
-The complete system is not suitable for Vercel because it requires persistent Celery workers, Beat,
-Redis, PostgreSQL, and later isolated browser automation. Splitting only the API onto Vercel is not a
-current goal.
-
+The complete system is not suitable for Vercel alone because it requires persistent Celery workers,
+Beat, Redis, PostgreSQL, and later isolated browser automation. A supported hybrid topology would
+need a dedicated serverless ASGI entrypoint plus externally hosted PostgreSQL/Redis and a separate
+worker platform. Those pieces and their production review are not part of this release.

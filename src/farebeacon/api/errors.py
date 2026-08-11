@@ -8,12 +8,14 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from farebeacon.api.schemas import ErrorCode
+
 
 class AppError(Exception):
     def __init__(
         self,
         *,
-        code: str,
+        code: ErrorCode,
         message: str,
         status_code: int,
         details: dict[str, Any] | None = None,
