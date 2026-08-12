@@ -8,6 +8,23 @@
 
 Worker health and backlog metrics are not yet part of readiness.
 
+## Alert delivery
+
+Alert evaluation runs when a search reaches `succeeded` or `partially_succeeded`. The cheapest
+observation is evaluated once per active rule. `new_historical_low` requires a previous successful
+observation; `price_below_limit` may match the first run. A sent event starts the rule cooldown.
+
+Delivery states are visible through `GET /api/v1/alerts`:
+
+- `pending`: persisted and awaiting a notification worker;
+- `sending`: claimed before the external request;
+- `sent`: accepted by Telegram;
+- `failed`: provider request failed and needs explicit operator review;
+- `suppressed`: cooldown active or the notification backend was disabled.
+
+Only `pending` events are automatically re-enqueued. Do not blindly replay `sending` events: a worker
+may have crashed after Telegram accepted the message but before PostgreSQL recorded the response.
+
 ## Migrations
 
 `docker compose up` starts the one-shot `migrate` service. Manual execution is:
@@ -29,6 +46,10 @@ Back up:
 
 Redis is a broker/cache, not the source of truth. The local Compose volumes are developer-friendly;
 a production deployment should map durable data to explicitly managed external volumes.
+
+The Telegram bot token belongs in the deployment secret manager. It is injected only into
+`notification-worker`; never place it in monitor payloads, API requests, logs, or source
+configuration. Rotate it through `@BotFather` if it is exposed.
 
 ## Ephemeral Docker acceptance boundary
 

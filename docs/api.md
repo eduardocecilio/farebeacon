@@ -49,6 +49,7 @@ List operations accept one-based `page` and `page_size` from 1 to 100. Page data
 - `MONITOR_NOT_FOUND`
 - `RUN_NOT_FOUND`
 - `RUN_ALREADY_ACTIVE`
+- `ALERT_NOT_FOUND`
 - `SOURCE_NOT_FOUND`
 - `SOURCE_DISABLED`
 - `SOURCE_RATE_LIMITED`
@@ -60,3 +61,9 @@ List operations accept one-based `page` and `page_size` from 1 to 100. Page data
 - `INTERNAL_ERROR`
 
 The generated OpenAPI document is the authoritative schema.
+
+## Alert events
+
+`GET /api/v1/alerts` lists evaluated alert and delivery state. It accepts the normal pagination
+parameters plus optional `monitor_id` and `status` filters. `GET /api/v1/alerts/{id}` returns one
+event. These endpoints never expose the Telegram bot token or chat credential.

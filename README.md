@@ -19,12 +19,16 @@ external provider, scraper, browser, account, or API key.
 - offer validation, itinerary correlation, and quote deduplication
 - PostgreSQL-backed current quotes and observation history
 - partial success when one source fails
+- price-limit and new-historical-low alert evaluation
+- one alert candidate per rule and run, with a 24-hour default cooldown
+- auditable notification state and delivery attempts
+- optional Telegram delivery through a dedicated egress worker
 - local raw-artifact storage behind a storage port
 - Celery Beat scheduling for due monitors
 - public liveness, readiness, and version endpoints
 
-No real flight source, scraping, Playwright, notification, booking, payment, or ticket issuance is
-included.
+No real flight source, scraping, Playwright, WhatsApp integration, booking, payment, or ticket
+issuance is included.
 
 ## Architecture
 
@@ -42,6 +46,12 @@ source.mock queue -> raw source batches
       |
       v
 normalize queue -> validate -> correlate -> persist -> history
+                                      |
+                                      v
+                              evaluate alert rules
+                                      |
+                                      v
+                         notifications queue -> Telegram
 ```
 
 `SearchSource.fetch()` only acquires source-shaped data. Its paired `SourceParser` produces the
@@ -81,6 +91,34 @@ curl -s http://127.0.0.1:8000/ready
 
 The one-shot `migrate` service applies Alembic migrations before the API and workers start.
 PostgreSQL and Redis are not published on host ports.
+
+## Telegram notifications
+
+Telegram is the only real notification channel supported by FareBeacon. It uses Telegram's official
+Bot API and does not link a personal Telegram account or phone session to FareBeacon. The account
+used with `@BotFather` only creates and administers the bot.
+
+1. Create a bot with `@BotFather` and store the generated token as a secret.
+2. Open the new bot from the destination Telegram account and press **Start** once.
+3. Obtain that private chat's numeric `chat_id` from the bot's updates.
+4. Configure:
+
+```dotenv
+FAREBEACON_NOTIFICATION_BACKEND=telegram
+FAREBEACON_TELEGRAM_BOT_TOKEN=replace-with-the-bot-token
+FAREBEACON_TELEGRAM_CHAT_ID=replace-with-the-chat-id
+```
+
+The token is passed only to `notification-worker`. That worker is the only application service on
+the egress network. With the default `FAREBEACON_NOTIFICATION_BACKEND=disabled`, matching events are
+recorded as `suppressed` and no external request is made. `fake` exists for automated tests and is
+rejected in production.
+
+The default cooldown is 1,440 minutes and can be changed globally with
+`FAREBEACON_DEFAULT_ALERT_COOLDOWN_MINUTES`. Evaluation chooses the cheapest observation in each run,
+so a source returning several matching offers does not send a burst of equivalent alerts. The first
+successful run establishes the historical baseline; `new_historical_low` starts comparing on later
+runs.
 
 ## Authentication
 
@@ -142,6 +180,9 @@ curl -sS "http://127.0.0.1:8000/api/v1/monitors/$MONITOR_ID/offers" \
 
 curl -sS "http://127.0.0.1:8000/api/v1/monitors/$MONITOR_ID/price-history" \
   -H "Authorization: Bearer $FAREBEACON_TOKEN"
+
+curl -sS "http://127.0.0.1:8000/api/v1/alerts?monitor_id=$MONITOR_ID" \
+  -H "Authorization: Bearer $FAREBEACON_TOKEN"
 ```
 
 Repeating either POST with the same `Idempotency-Key` and the same body returns the original
@@ -175,6 +216,9 @@ not claimed as production-ready in this release. See [docs/operations.md](docs/o
 New sources must be explicitly reviewed for terms of use, rate limits, data licensing, and technical
 access rules. FareBeacon does not bypass CAPTCHA, authentication, paywalls, robots controls, or other
 protections. See [docs/sources.md](docs/sources.md) and [SECURITY.md](SECURITY.md).
+
+GOWA and other WhatsApp Web session gateways are intentionally outside the project and its roadmap.
+See [ADR 0003](docs/adr/0003-telegram-only-notifications.md).
 
 ## License
 

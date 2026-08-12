@@ -18,6 +18,8 @@ task replay, lateral container movement, and accidental database exposure.
 - PostgreSQL starts as its dedicated non-root user without the root-only `gosu` helper;
 - read-only application root filesystems with bounded tmpfs;
 - separate source and normalization queues;
+- Telegram credentials isolated to a dedicated notification worker and egress network;
+- atomic notification claims preventing duplicate sends on ordinary task replay;
 - generated, traversal-safe artifact keys and content hashes;
 - raw artifacts are not labelled sanitized until an explicit redaction stage exists;
 - dependency lockfiles carry hashes; base images and CI actions are immutable references;
@@ -33,6 +35,8 @@ task replay, lateral container movement, and accidental database exposure.
 - the data plane and MockSource workers use an internal-only network;
 - only the API joins a separate ingress bridge, with its host port bound to loopback;
 - approved real sources require a separate egress policy.
+- Telegram does not provide an idempotency key, so an event left in `sending` after a hard worker
+  failure requires explicit reconciliation rather than automatic replay.
 
 Never expose this alpha directly to the public internet without a reverse proxy, TLS, rate limiting,
 secret rotation, backups, and an environment-specific review.

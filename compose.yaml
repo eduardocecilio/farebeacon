@@ -13,6 +13,7 @@ x-app-common: &app-common
     FAREBEACON_LOG_LEVEL: ${FAREBEACON_LOG_LEVEL:-INFO}
     FAREBEACON_CELERY_TASK_ALWAYS_EAGER: ${FAREBEACON_CELERY_TASK_ALWAYS_EAGER:-false}
     FAREBEACON_DEFAULT_SOURCE_TIMEOUT_SECONDS: ${FAREBEACON_DEFAULT_SOURCE_TIMEOUT_SECONDS:-30}
+    FAREBEACON_DEFAULT_ALERT_COOLDOWN_MINUTES: ${FAREBEACON_DEFAULT_ALERT_COOLDOWN_MINUTES:-1440}
     FAREBEACON_MAX_REQUEST_BODY_BYTES: ${FAREBEACON_MAX_REQUEST_BODY_BYTES:-1048576}
     FAREBEACON_MAX_SOURCE_PAYLOAD_BYTES: ${FAREBEACON_MAX_SOURCE_PAYLOAD_BYTES:-4194304}
     TZ: ${TZ:-America/Sao_Paulo}
@@ -221,6 +222,34 @@ services:
       redis:
         condition: service_healthy
 
+  notification-worker:
+    <<: *app-common
+    container_name: farebeacon-notification-worker
+    environment:
+      <<: *app-environment
+      FAREBEACON_NOTIFICATION_BACKEND: ${FAREBEACON_NOTIFICATION_BACKEND:-disabled}
+      FAREBEACON_TELEGRAM_BOT_TOKEN: ${FAREBEACON_TELEGRAM_BOT_TOKEN:-}
+      FAREBEACON_TELEGRAM_CHAT_ID: ${FAREBEACON_TELEGRAM_CHAT_ID:-}
+      FAREBEACON_TELEGRAM_REQUEST_TIMEOUT_SECONDS: ${FAREBEACON_TELEGRAM_REQUEST_TIMEOUT_SECONDS:-10}
+    command:
+      [
+        "celery",
+        "-A",
+        "farebeacon.tasks.celery_app:celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=notifications",
+        "--concurrency=1",
+      ]
+    networks:
+      - internal
+      - egress
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
 networks:
   internal:
     name: farebeacon-internal
@@ -228,6 +257,9 @@ networks:
     internal: true
   ingress:
     name: farebeacon-ingress
+    driver: bridge
+  egress:
+    name: farebeacon-egress
     driver: bridge
 
 volumes:

@@ -98,18 +98,18 @@ Acceptance requires:
 8. Offers and observation history are queryable.
 9. Duplicate items do not create duplicate observations for a source run.
 10. Ruff, tests, OpenAPI generation, and secret checks pass.
+11. Matching rules create auditable alert events, respect cooldown, and deliver through the
+    configured notifier without duplicate sends on normal task replay.
 
 ## Later phases
 
 1. Complete monitor/run/source administration API.
 2. Jinja2 and HTMX web interface consuming the API.
-3. Alert evaluation, FakeNotifier, then Telegram.
-4. Quota, cost, cache, reserve, and rate limiting.
-5. First approved structured API after its official contract is reviewed.
-6. Amadeus sandbox and production adapters with explicit test-data labeling.
-7. First legally reviewed HTTP parser with static fixtures.
-8. Isolated Playwright worker with no direct database access.
+3. Quota, cost, cache, reserve, and rate limiting.
+4. First approved structured API after its official contract is reviewed.
+5. Amadeus sandbox and production adapters with explicit test-data labeling.
+6. First legally reviewed HTTP parser with static fixtures.
+7. Isolated Playwright worker with no direct database access.
 
 The detailed backlog lives in `docs/TODO.md`. A code-complete release and a production promotion are
 separate decisions.
-

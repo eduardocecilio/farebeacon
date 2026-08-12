@@ -8,7 +8,7 @@ from fastapi import FastAPI
 
 from farebeacon.api.errors import install_error_handlers
 from farebeacon.api.middleware import RequestContextMiddleware
-from farebeacon.api.routes import monitors, results, runs, sources, system
+from farebeacon.api.routes import alerts, monitors, results, runs, sources, system
 from farebeacon.application.common import sync_source_definitions
 from farebeacon.config import Settings, get_settings
 from farebeacon.infrastructure.db.session import Database, database
@@ -59,6 +59,10 @@ def create_app(
                 "name": "results",
                 "description": "Normalized offers and observation history.",
             },
+            {
+                "name": "alerts",
+                "description": "Evaluated rules and notification delivery state.",
+            },
             {"name": "sources", "description": "Installed acquisition adapters."},
         ],
     )
@@ -70,6 +74,7 @@ def create_app(
     application.include_router(monitors.router)
     application.include_router(runs.router)
     application.include_router(results.router)
+    application.include_router(alerts.router)
     application.include_router(sources.router)
     return application
 

@@ -7,7 +7,8 @@ These items are intentionally outside the first delivery:
 - transactional outbox or equivalent broker-dispatch reconciliation;
 - quota, cache, reserve, and rate-limit enforcement;
 - idempotency-record and artifact-retention cleanup;
-- alert evaluation, cooldown, delivery attempts, `FakeNotifier`, and Telegram;
+- explicit retry/reconciliation commands for failed or stale notification deliveries;
+- secure one-time Telegram chat linking for a future web interface;
 - Jinja2/HTMX interface that consumes the API;
 - metrics, worker heartbeat, backlog visibility, and tracing;
 - S3/MinIO artifact adapter;
@@ -16,6 +17,8 @@ These items are intentionally outside the first delivery:
 - isolated Playwright worker and egress policy;
 - multi-user authentication and authorization, if FareBeacon becomes a hosted service.
 
+GOWA, WhatsApp Web session gateways, and other unofficial WhatsApp adapters are intentionally not in
+the backlog. Telegram is the project's only planned real notification channel.
+
 No real source should start until the MockSource acceptance flow remains green in CI and the target
 provider has a documented access policy.
-

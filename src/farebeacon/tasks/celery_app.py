@@ -14,6 +14,7 @@ celery_app = Celery(
         "farebeacon.tasks.orchestration",
         "farebeacon.tasks.sources",
         "farebeacon.tasks.normalization",
+        "farebeacon.tasks.alerts",
         "farebeacon.tasks.scheduler",
     ],
 )
@@ -34,12 +35,18 @@ celery_app.conf.update(
         "farebeacon.orchestrate_run": {"queue": "orchestration"},
         "farebeacon.execute_source_run": {"queue": "source.mock"},
         "farebeacon.normalize_source_results": {"queue": "normalize"},
+        "farebeacon.dispatch_alert_event": {"queue": "notifications"},
+        "farebeacon.dispatch_pending_alerts": {"queue": "maintenance"},
         "farebeacon.enqueue_due_monitors": {"queue": "maintenance"},
     },
     beat_schedule={
         "enqueue-due-monitors": {
             "task": "farebeacon.enqueue_due_monitors",
             "schedule": 60.0,
-        }
+        },
+        "dispatch-pending-alerts": {
+            "task": "farebeacon.dispatch_pending_alerts",
+            "schedule": 60.0,
+        },
     },
 )
