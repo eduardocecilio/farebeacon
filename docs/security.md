@@ -38,5 +38,19 @@ task replay, lateral container movement, and accidental database exposure.
 - Telegram does not provide an idempotency key, so an event left in `sending` after a hard worker
   failure requires explicit reconciliation rather than automatic replay.
 
-Never expose this alpha directly to the public internet without a reverse proxy, TLS, rate limiting,
-secret rotation, backups, and an environment-specific review.
+## Public demo mode
+
+`FAREBEACON_DEMO_READ_ONLY` exists for one purpose: a public showcase whose database holds only
+disposable seeded data. It answers `GET`, `HEAD`, and `OPTIONS` without a token; `POST` and every
+other write still require the Bearer token, so no write credential is published.
+
+Enabling it is a decision about the data, not about the endpoint. Do not enable it on a deployment
+that owns real monitors or real history, and keep `FAREBEACON_NOTIFICATION_BACKEND=disabled` there:
+a public URL with a live bot token would let visitors drive messages into a private chat.
+
+The mode adds no rate limiting of its own. It assumes the hosting platform terminates TLS and
+absorbs abusive traffic, which is why [the demo deployment](vercel-demo.md) is described for a
+managed platform rather than for a self-hosted port.
+
+Outside that mode, never expose this alpha directly to the public internet without a reverse proxy,
+TLS, rate limiting, secret rotation, backups, and an environment-specific review.

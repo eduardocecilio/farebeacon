@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from celery import Celery  # type: ignore[import-untyped]
-from kombu import Queue
+from kombu import Queue  # type: ignore[import-untyped]
 
 from farebeacon.config import get_settings
 
