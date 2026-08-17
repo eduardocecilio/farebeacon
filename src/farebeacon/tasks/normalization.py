@@ -38,6 +38,12 @@ TERMINAL_SOURCE_STATUSES = {
     SourceRunStatus.FAILED.value,
     SourceRunStatus.CANCELLED.value,
 }
+TERMINAL_RUN_STATUSES = {
+    RunStatus.SUCCEEDED.value,
+    RunStatus.PARTIALLY_SUCCEEDED.value,
+    RunStatus.FAILED.value,
+    RunStatus.CANCELLED.value,
+}
 
 
 @celery_app.task(name="farebeacon.normalize_source_results")  # type: ignore[untyped-decorator]
@@ -297,7 +303,7 @@ def _create_itinerary(offer: NormalizedOffer, digest: str) -> Itinerary:
 
 def finalize_search_run(session: Session, run_id: str) -> None:
     run = session.get(SearchRun, run_id)
-    if run is None or run.status == RunStatus.CANCELLED.value:
+    if run is None or run.status in TERMINAL_RUN_STATUSES:
         return
     source_runs = list(session.scalars(select(SourceRun).where(SourceRun.search_run_id == run_id)))
     if not source_runs or any(item.status not in TERMINAL_SOURCE_STATUSES for item in source_runs):
@@ -337,4 +343,15 @@ def finalize_search_run(session: Session, run_id: str) -> None:
         run.status = RunStatus.PARTIALLY_SUCCEEDED.value
     else:
         run.status = RunStatus.SUCCEEDED.value
+    from farebeacon.application.alerts import evaluate_alerts_for_run
+
+    pending_event_ids = evaluate_alerts_for_run(
+        session,
+        run_id=run.id,
+        default_cooldown_minutes=get_settings().default_alert_cooldown_minutes,
+    )
     session.commit()
+    if pending_event_ids:
+        from farebeacon.tasks.alerts import queue_alert_events
+
+        queue_alert_events(pending_event_ids)

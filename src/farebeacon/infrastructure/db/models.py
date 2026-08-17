@@ -332,6 +332,16 @@ class AlertEvent(Base):
 
     id: Mapped[str] = mapped_column(String(40), primary_key=True, default=lambda: new_id("alert"))
     monitor_id: Mapped[str] = mapped_column(ForeignKey("monitors.id"), index=True)
+    alert_rule_id: Mapped[str | None] = mapped_column(
+        ForeignKey("alert_rules.id"),
+        nullable=True,
+        index=True,
+    )
+    search_run_id: Mapped[str | None] = mapped_column(
+        ForeignKey("search_runs.id"),
+        nullable=True,
+        index=True,
+    )
     quote_observation_id: Mapped[str | None] = mapped_column(
         ForeignKey("quote_observations.id"),
         nullable=True,
@@ -339,6 +349,12 @@ class AlertEvent(Base):
     rule_type: Mapped[str] = mapped_column(String(50))
     deduplication_key: Mapped[str] = mapped_column(String(128))
     status: Mapped[str] = mapped_column(String(30), default=AlertEventStatus.PENDING.value)
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    provider: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    provider_message_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    suppression_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

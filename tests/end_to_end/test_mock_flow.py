@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
+
+from farebeacon.infrastructure.db.models import AlertEvent, MonitorSource
+from farebeacon.infrastructure.db.session import database
+from farebeacon.tasks.alerts import dispatch_alert_event
 
 
 def create_monitor(
@@ -70,6 +75,25 @@ def test_complete_mock_source_flow(
     assert len(paged_history["items"]) == 1
     assert paged_history["total"] == 8
 
+    alerts = client.get(
+        f"/api/v1/alerts?monitor_id={monitor_id}",
+        headers=auth_headers,
+    ).json()["data"]
+    assert alerts["total"] == 2
+    assert {item["status"] for item in alerts["items"]} == {"sent", "suppressed"}
+    sent = next(item for item in alerts["items"] if item["status"] == "sent")
+    assert sent["rule_type"] == "price_below_limit"
+    assert sent["provider"] == "fake"
+    assert sent["attempt_count"] == 1
+    assert "Brasília para Porto Velho" in sent["message"]
+
+    repeated_dispatch = dispatch_alert_event(sent["id"])
+    assert repeated_dispatch["status"] == "sent"
+    with database.session() as session:
+        persisted = session.get(AlertEvent, sent["id"])
+        assert persisted is not None
+        assert persisted.attempt_count == 1
+
 
 def test_partial_source_failure_preserves_valid_results(
     client: TestClient,
@@ -93,3 +117,46 @@ def test_partial_source_failure_preserves_valid_results(
     assert run["sources_failed"] == 1
     offers = client.get(f"/api/v1/monitors/{monitor_id}/offers", headers=auth_headers).json()
     assert offers["data"]["total"] == 4
+
+
+def test_new_historical_low_requires_a_previous_run(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    monitor_payload: dict[str, object],
+) -> None:
+    payload = {
+        **monitor_payload,
+        "source_configuration": {"mock": {"base_price_minor": 90000}},
+        "alerts": {"new_historical_low": True},
+    }
+    monitor_id = create_monitor(client, auth_headers, payload)
+    first = client.post(
+        f"/api/v1/monitors/{monitor_id}/runs",
+        headers={**auth_headers, "Idempotency-Key": "historical-baseline"},
+    )
+    assert first.status_code == 202
+    baseline_alerts = client.get(
+        f"/api/v1/alerts?monitor_id={monitor_id}", headers=auth_headers
+    ).json()["data"]
+    assert baseline_alerts["total"] == 0
+
+    with database.session() as session:
+        monitor_source = session.scalar(
+            select(MonitorSource).where(MonitorSource.monitor_id == monitor_id)
+        )
+        assert monitor_source is not None
+        monitor_source.configuration = {"schema_version": "1", "base_price_minor": 70000}
+        session.commit()
+
+    second = client.post(
+        f"/api/v1/monitors/{monitor_id}/runs",
+        headers={**auth_headers, "Idempotency-Key": "historical-lower-price"},
+    )
+    assert second.status_code == 202
+    alerts = client.get(f"/api/v1/alerts?monitor_id={monitor_id}", headers=auth_headers).json()[
+        "data"
+    ]
+    assert alerts["total"] == 1
+    assert alerts["items"][0]["rule_type"] == "new_historical_low"
+    assert alerts["items"][0]["status"] == "sent"
+    assert "previous low" in alerts["items"][0]["message"]

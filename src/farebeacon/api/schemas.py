@@ -33,6 +33,7 @@ type ErrorCode = Literal[
     "MONITOR_NOT_FOUND",
     "RUN_NOT_FOUND",
     "RUN_ALREADY_ACTIVE",
+    "ALERT_NOT_FOUND",
     "SOURCE_NOT_FOUND",
     "SOURCE_DISABLED",
     "SOURCE_RATE_LIMITED",
@@ -311,6 +312,25 @@ class PriceHistoryRead(StrictModel):
     price_minor: int
     currency: str
     observed_at: datetime
+
+
+class AlertEventRead(StrictModel):
+    id: str
+    monitor_id: str
+    alert_rule_id: str | None
+    search_run_id: str | None
+    quote_observation_id: str | None
+    rule_type: str
+    status: str
+    message: str | None
+    provider: str | None
+    provider_message_id: str | None
+    attempt_count: int
+    last_attempt_at: datetime | None
+    suppression_reason: str | None
+    error_message: str | None
+    created_at: datetime
+    sent_at: datetime | None
 
 
 class SourceRead(StrictModel):

@@ -45,6 +45,7 @@ class SourceStatus(StrEnum):
 
 class AlertEventStatus(StrEnum):
     PENDING = "pending"
+    SENDING = "sending"
     SENT = "sent"
     FAILED = "failed"
     SUPPRESSED = "suppressed"

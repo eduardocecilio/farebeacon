@@ -21,3 +21,36 @@ def test_token_is_redacted_from_settings_representation() -> None:
     token = "a-valid-test-token-with-at-least-thirty-two-characters"
     settings = Settings(api_token=token)
     assert token not in repr(settings)
+
+
+def test_telegram_backend_requires_bot_token_and_chat_id() -> None:
+    with pytest.raises(ValidationError, match="bot token"):
+        Settings(notification_backend="telegram", telegram_chat_id="123456")
+    with pytest.raises(ValidationError, match="bot token"):
+        Settings(
+            notification_backend="telegram",
+            telegram_bot_token="   ",
+            telegram_chat_id="123456",
+        )
+    with pytest.raises(ValidationError, match="chat id"):
+        Settings(notification_backend="telegram", telegram_bot_token="telegram-secret")
+
+
+def test_telegram_token_is_redacted_from_settings_representation() -> None:
+    token = "telegram-token-that-must-stay-secret"
+    settings = Settings(
+        notification_backend="telegram",
+        telegram_bot_token=token,
+        telegram_chat_id="123456",
+    )
+    assert token not in repr(settings)
+
+
+def test_fake_notifications_are_rejected_in_production() -> None:
+    with pytest.raises(ValidationError, match="fake notification backend"):
+        Settings(
+            env="production",
+            api_token="a-valid-production-token-with-at-least-thirty-two-characters",
+            database_url="postgresql+psycopg://farebeacon:secret@postgres/farebeacon",
+            notification_backend="fake",
+        )

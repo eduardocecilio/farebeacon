@@ -15,6 +15,7 @@ os.environ["FAREBEACON_DATABASE_URL"] = "sqlite+pysqlite:///./.test/farebeacon.d
 os.environ["FAREBEACON_REDIS_URL"] = "redis://127.0.0.1:6379/15"
 os.environ["FAREBEACON_ARTIFACTS_ROOT"] = ".test/artifacts"
 os.environ["FAREBEACON_CELERY_TASK_ALWAYS_EAGER"] = "true"
+os.environ["FAREBEACON_NOTIFICATION_BACKEND"] = "fake"
 
 from farebeacon.api.main import app
 from farebeacon.application.common import sync_source_definitions
