@@ -21,9 +21,12 @@ class Settings(BaseSettings):
     api_token: SecretStr | None = None
     database_url: str = "sqlite+pysqlite:///./farebeacon.db"
     redis_url: str = "redis://127.0.0.1:6379/0"
+    celery_broker_url: str | None = None
+    celery_result_backend: str | None = None
     artifacts_root: Path = Path(".artifacts")
     log_level: str = "INFO"
     celery_task_always_eager: bool = False
+    demo_read_only: bool = False
     default_source_timeout_seconds: int = Field(default=30, ge=1, le=300)
     max_request_body_bytes: int = Field(default=1_048_576, ge=1024, le=10_485_760)
     max_source_payload_bytes: int = Field(default=4_194_304, ge=1024, le=52_428_800)
@@ -55,6 +58,23 @@ class Settings(BaseSettings):
             if not self.telegram_chat_id or not self.telegram_chat_id.strip():
                 raise ValueError("Telegram chat id is required for the telegram backend")
         return self
+
+    @property
+    def broker_url(self) -> str:
+        """Celery broker. Redis is the default; a platform broker can replace it."""
+        return self.celery_broker_url or self.redis_url
+
+    @property
+    def result_backend(self) -> str:
+        """Celery result backend, which follows the broker unless it is overridden."""
+        return self.celery_result_backend or self.redis_url
+
+    @property
+    def requires_redis(self) -> bool:
+        """Redis is a runtime dependency only while it backs the broker or the results."""
+        if self.celery_task_always_eager:
+            return False
+        return self.broker_url.startswith("redis") or self.result_backend.startswith("redis")
 
     def require_api_token(self) -> str:
         if self.api_token is None:

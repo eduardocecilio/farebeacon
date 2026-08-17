@@ -28,10 +28,16 @@ def get_db(database: Annotated[Database, Depends(get_database)]) -> Iterator[Ses
         yield session
 
 
+READ_ONLY_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
 def require_authentication(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> None:
+    if settings.demo_read_only and request.method in READ_ONLY_METHODS:
+        return
     configured_token = settings.require_api_token()
     valid = (
         credentials is not None

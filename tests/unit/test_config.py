@@ -46,6 +46,29 @@ def test_telegram_token_is_redacted_from_settings_representation() -> None:
     assert token not in repr(settings)
 
 
+def test_broker_and_result_backend_default_to_redis() -> None:
+    settings = Settings(redis_url="redis://cache:6379/2")
+    assert settings.broker_url == "redis://cache:6379/2"
+    assert settings.result_backend == "redis://cache:6379/2"
+    assert settings.requires_redis is True
+
+
+def test_a_platform_broker_replaces_redis() -> None:
+    settings = Settings(
+        celery_broker_url="vercel://",
+        celery_result_backend="vercel-runtime-cache://",
+    )
+    assert settings.broker_url == "vercel://"
+    assert settings.result_backend == "vercel-runtime-cache://"
+    assert settings.requires_redis is False
+
+
+def test_eager_execution_removes_the_redis_requirement() -> None:
+    settings = Settings(celery_task_always_eager=True)
+    assert settings.broker_url.startswith("redis")
+    assert settings.requires_redis is False
+
+
 def test_fake_notifications_are_rejected_in_production() -> None:
     with pytest.raises(ValidationError, match="fake notification backend"):
         Settings(

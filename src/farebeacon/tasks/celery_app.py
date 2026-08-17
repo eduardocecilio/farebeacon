@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 from celery import Celery  # type: ignore[import-untyped]
+from kombu import Queue
 
 from farebeacon.config import get_settings
 
 settings = get_settings()
 
+QUEUE_NAMES = ("orchestration", "source.mock", "normalize", "notifications", "maintenance")
+
 celery_app = Celery(
     "farebeacon",
-    broker=settings.redis_url,
-    backend=settings.redis_url,
+    broker=settings.broker_url,
+    backend=settings.result_backend,
     include=[
         "farebeacon.tasks.orchestration",
         "farebeacon.tasks.sources",
@@ -31,6 +34,7 @@ celery_app.conf.update(
     task_always_eager=settings.celery_task_always_eager,
     task_eager_propagates=True,
     task_store_eager_result=False,
+    task_queues=[Queue(name) for name in QUEUE_NAMES],
     task_routes={
         "farebeacon.orchestrate_run": {"queue": "orchestration"},
         "farebeacon.execute_source_run": {"queue": "source.mock"},
