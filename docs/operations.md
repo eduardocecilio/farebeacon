@@ -25,6 +25,9 @@ Delivery states are visible through `GET /api/v1/alerts`:
 Only `pending` events are automatically re-enqueued. Do not blindly replay `sending` events: a worker
 may have crashed after Telegram accepted the message but before PostgreSQL recorded the response.
 
+[Telegram smoke test](telegram-smoke-test.md) is the controlled procedure that proves real delivery,
+the persisted provider receipt, and replay safety on a disposable stack.
+
 ## Migrations
 
 `docker compose up` starts the one-shot `migrate` service. Manual execution is:
