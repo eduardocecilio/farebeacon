@@ -47,7 +47,7 @@ def test_telegram_token_is_redacted_from_settings_representation() -> None:
 
 
 def test_broker_and_result_backend_default_to_redis() -> None:
-    settings = Settings(redis_url="redis://cache:6379/2")
+    settings = Settings(redis_url="redis://cache:6379/2", celery_task_always_eager=False)
     assert settings.broker_url == "redis://cache:6379/2"
     assert settings.result_backend == "redis://cache:6379/2"
     assert settings.requires_redis is True
@@ -57,6 +57,7 @@ def test_a_platform_broker_replaces_redis() -> None:
     settings = Settings(
         celery_broker_url="vercel://",
         celery_result_backend="vercel-runtime-cache://",
+        celery_task_always_eager=False,
     )
     assert settings.broker_url == "vercel://"
     assert settings.result_backend == "vercel-runtime-cache://"
