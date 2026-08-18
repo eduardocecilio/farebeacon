@@ -27,6 +27,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 DATABASE_PATH = ROOT / "demo.db"
 VERIFY_FLAG = "--verify"
+# Captured before this script sets anything: what the platform actually hands the deployment.
+PLATFORM_ENVIRONMENT = dict(os.environ)
 
 
 def main() -> None:
@@ -52,13 +54,33 @@ def main() -> None:
 
     print(f"demo database built at {DATABASE_PATH} with {len(monitor_ids)} monitors")
 
-    # A clean interpreter with no FAREBEACON_ variable at all is the only way to exercise what the
-    # deployment actually does: configure itself around the bundled database. This process already
-    # bound its engine to the build path and set variables to build it.
-    runtime_environment = {
-        key: value for key, value in os.environ.items() if not key.startswith("FAREBEACON_")
+    # A clean interpreter is the only way to exercise what the deployment actually does: configure
+    # itself around the bundled database. This process already bound its engine to the build path
+    # and set variables to build it.
+    neutral = {
+        key: value
+        for key, value in PLATFORM_ENVIRONMENT.items()
+        if not key.startswith("FAREBEACON_")
     }
-    subprocess.run([sys.executable, __file__, VERIFY_FLAG], check=True, env=runtime_environment)
+    print("verifying the zero-configuration deployment")
+    _boot(neutral)
+
+    # The deployment does not run with a neutral environment: it runs with whatever this project
+    # configures. A variable that cannot produce a working application must fail the build here,
+    # not answer every request with a platform error afterwards.
+    configured = {
+        key: value
+        for key, value in PLATFORM_ENVIRONMENT.items()
+        if key != "FAREBEACON_DATABASE_URL"
+    }
+    if any(key.startswith("FAREBEACON_") for key in configured):
+        declared = sorted(key for key in configured if key.startswith("FAREBEACON_"))
+        print(f"verifying the configured environment: {', '.join(declared)}")
+        _boot(configured)
+
+
+def _boot(environment: dict[str, str]) -> None:
+    subprocess.run([sys.executable, __file__, VERIFY_FLAG], check=True, env=environment)
 
 
 def verify() -> None:
