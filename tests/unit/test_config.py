@@ -46,6 +46,26 @@ def test_telegram_token_is_redacted_from_settings_representation() -> None:
     assert token not in repr(settings)
 
 
+def test_empty_environment_values_fall_back_to_defaults() -> None:
+    settings = Settings(
+        demo_read_only="",
+        default_alert_cooldown_minutes="",
+        telegram_request_timeout_seconds="",
+        celery_broker_url="",
+        api_token="",
+    )
+    assert settings.demo_read_only is False
+    assert settings.default_alert_cooldown_minutes == 1440
+    assert settings.telegram_request_timeout_seconds == 10
+    assert settings.celery_broker_url is None
+    assert settings.api_token is None
+
+
+def test_an_empty_telegram_token_is_not_a_token() -> None:
+    with pytest.raises(ValidationError, match="bot token"):
+        Settings(notification_backend="telegram", telegram_bot_token="", telegram_chat_id="123456")
+
+
 def test_broker_and_result_backend_default_to_redis() -> None:
     settings = Settings(redis_url="redis://cache:6379/2", celery_task_always_eager=False)
     assert settings.broker_url == "redis://cache:6379/2"
