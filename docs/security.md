@@ -44,6 +44,11 @@ task replay, lateral container movement, and accidental database exposure.
 disposable seeded data. It answers `GET`, `HEAD`, and `OPTIONS` without a token; `POST` and every
 other write still require the Bearer token, so no write credential is published.
 
+A demo deployment normally runs with no API token at all. The application then boots read-only and
+answers every write with `AUTHENTICATION_REQUIRED`, because there is no credential that could
+authorize one. A write path that cannot be unlocked is safer than one protected by a token that has
+to be stored, scoped, and rotated.
+
 Enabling it is a decision about the data, not about the endpoint. Do not enable it on a deployment
 that owns real monitors or real history, and keep `FAREBEACON_NOTIFICATION_BACKEND=disabled` there:
 a public URL with a live bot token would let visitors drive messages into a private chat.

@@ -40,6 +40,16 @@ if not os.environ.get("FAREBEACON_DATABASE_URL"):
     # Forced, not defaulted: a per-instance database cannot be shared with a worker, and a leftover
     # variable from a Compose `.env` must not point this deployment at a broker that does not exist.
     os.environ["FAREBEACON_CELERY_TASK_ALWAYS_EAGER"] = "true"
+    # Running on a disposable, seeded database is what makes this deployment a demo, so it carries
+    # the demo posture by itself: public reads, refused writes, no notifications. Every value stays
+    # overridable, and a deployment that configures its own database gets none of this.
+    os.environ.setdefault("FAREBEACON_DEMO_READ_ONLY", "true")
+    os.environ.setdefault("FAREBEACON_NOTIFICATION_BACKEND", "disabled")
+    os.environ.setdefault("FAREBEACON_ENV", "demo")
+    print(
+        "farebeacon: ephemeral demo database in use; reads are public and writes are refused",
+        file=sys.stderr,
+    )
 
 if _SEED_ON_BOOT:
     # The bundled database did not reach the function. Build the demo data here instead of serving

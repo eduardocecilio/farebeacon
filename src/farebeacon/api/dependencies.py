@@ -38,7 +38,14 @@ def require_authentication(
 ) -> None:
     if settings.demo_read_only and request.method in READ_ONLY_METHODS:
         return
-    configured_token = settings.require_api_token()
+    if settings.api_token is None:
+        raise AppError(
+            code="AUTHENTICATION_REQUIRED",
+            message="This deployment has no API token, so writes are disabled.",
+            status_code=401,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    configured_token = settings.api_token.get_secret_value()
     valid = (
         credentials is not None
         and credentials.scheme.lower() == "bearer"

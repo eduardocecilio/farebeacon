@@ -27,6 +27,9 @@ The demo deploys the same code with configuration only.
 - `/ready` reports Redis only when the broker or the result backend needs it.
 - `FAREBEACON_DEMO_READ_ONLY` answers `GET`, `HEAD`, and `OPTIONS` without a token. Every write still
   requires the Bearer token, so no write credential is published.
+- The demo deploys with no environment variable at all. Running on the bundled disposable database
+  is the signal, and the entrypoint applies the demo posture from it. With no token configured, the
+  API boots read-only and refuses writes instead of authorizing them.
 - The demo carries its own database. The build command creates a SQLite file from the models and
   seeds it; the function copies that file into its temporary directory at startup. No managed
   database, account, or credential is involved, and every deployment rebuilds the data. Alembic

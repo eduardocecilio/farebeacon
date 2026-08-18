@@ -25,6 +25,40 @@ def demo_client() -> Iterator[TestClient]:
         yield client
 
 
+@pytest.fixture
+def tokenless_demo_client() -> Iterator[TestClient]:
+    settings = Settings(
+        api_token=None,
+        demo_read_only=True,
+        celery_task_always_eager=True,
+        notification_backend="disabled",
+    )
+    with TestClient(create_app(settings=settings, app_database=database)) as client:
+        yield client
+
+
+def test_a_demo_without_a_token_still_boots_and_serves_reads(
+    tokenless_demo_client: TestClient,
+) -> None:
+    assert tokenless_demo_client.get("/health").status_code == 200
+    assert tokenless_demo_client.get("/api/v1/monitors").status_code == 200
+
+
+def test_a_demo_without_a_token_refuses_every_write(tokenless_demo_client: TestClient) -> None:
+    response = tokenless_demo_client.post(
+        "/api/v1/monitors",
+        headers={"Idempotency-Key": "tokenless-demo-write"},
+        json={
+            "name": "Should not be created",
+            "route": {"origin": "BSB", "destination": "PVH"},
+            "departure_dates": ["2030-07-10"],
+            "sources": ["mock"],
+        },
+    )
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "AUTHENTICATION_REQUIRED"
+
+
 def test_demo_mode_serves_reads_without_a_token(demo_client: TestClient) -> None:
     response = demo_client.get("/api/v1/monitors")
     assert response.status_code == 200, response.text

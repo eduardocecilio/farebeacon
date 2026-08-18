@@ -210,9 +210,10 @@ The Compose stack is the reference topology, and a self-hosted deployment should
 [docs/operations.md](docs/operations.md) for backup scope, secret handling, and the acceptance
 boundary.
 
-A reduced public demo can also run on Vercel, with no database service, account, or cost: the build
-command seeds a SQLite database into the deployment bundle, and the function copies it into its
-temporary directory at startup. The demo answers reads without a token, requires the token for every
+A reduced public demo can also run on Vercel with no database service, account, cost, or
+configuration: the build command seeds a SQLite database into the deployment bundle, the function
+copies it into its temporary directory at startup, and the deployment applies the demo posture from
+the fact that it is running on that disposable database. The demo answers reads without a token, requires the token for every
 write, and keeps notifications disabled. It deploys the same code through configuration alone —
 there is no separate serverless codebase, and pointing `FAREBEACON_DATABASE_URL` at a managed
 PostgreSQL instance upgrades it to durable state with a queue-backed worker. See

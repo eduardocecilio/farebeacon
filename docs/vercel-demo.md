@@ -46,29 +46,26 @@ Import the repository. The Python runtime resolves everything from `pyproject.to
 `app.py` puts `src` on the import path and re-exports the application that already exists in
 `src/farebeacon`. There is no separate serverless codebase.
 
-## 2. Configure the environment
+## 2. Configure nothing
 
-| Variable | Value | Why |
-| --- | --- | --- |
-| `FAREBEACON_API_TOKEN` | a fresh 32+ character random token | authorizes writes; keep it private |
-| `FAREBEACON_DEMO_READ_ONLY` | `true` | anonymous reads, authenticated writes |
-| `FAREBEACON_NOTIFICATION_BACKEND` | `disabled` | never message a private chat from a public URL |
-| `FAREBEACON_ENV` | `demo` | keeps the environment honest in `/health` and logs |
+The demo needs no environment variable. Running on the bundled, disposable database is what makes a
+deployment a demo, so the entrypoint carries that posture by itself:
 
-Add all four to **every** environment the project builds, not only production: a preview build runs
-the same startup check and fails without them. Keep `FAREBEACON_API_TOKEN` available at build time —
-a variable marked as runtime-only is invisible to the build, which boots the application before
-shipping it.
+- reads are public;
+- writes are refused, because no API token exists to authorize them;
+- notifications are disabled;
+- tasks run inline, since a per-instance database cannot be shared with a worker.
 
-Add only those four. Do not import `.env.example` as a whole: it configures the Compose stack, and
-the platform rejects reserved names such as `TZ` with `Environment variable "TZ" is invalid`. No
-timezone variable is needed here, because the application is UTC everywhere — Celery, stored
-timestamps, and rendered alert messages.
+That is stronger than a configured demo, not weaker: there is no write credential to leak, rotate,
+or accidentally publish. Every value remains overridable by setting the matching variable, and a
+deployment that configures its own database gets none of these defaults.
 
-Leave `FAREBEACON_DATABASE_URL` unset: setting it disables the bundled database. `FAREBEACON_REDIS_URL`
-stays unset too, and readiness no longer asks for a Redis that nothing needs.
-`FAREBEACON_POSTGRES_PASSWORD` and `FAREBEACON_PORT` belong to Compose and mean nothing in a
-function.
+Do not import `.env.example`: it configures the Compose stack, and the platform rejects reserved
+names such as `TZ` with `Environment variable "TZ" is invalid`. No timezone variable is needed,
+because the application is UTC everywhere.
+
+Set `FAREBEACON_API_TOKEN` only if you want an authenticated writer on the demo. It must then be
+available at build time, because the build boots the application before shipping it.
 
 ## 3. Verify the deployment
 
