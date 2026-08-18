@@ -52,11 +52,11 @@ def main() -> None:
 
     print(f"demo database built at {DATABASE_PATH} with {len(monitor_ids)} monitors")
 
-    # A clean interpreter without FAREBEACON_DATABASE_URL is the only way to exercise what the
-    # deployment actually does: copy the bundled database into the writable directory. This process
-    # already bound its engine to the build path.
+    # A clean interpreter with no FAREBEACON_ variable at all is the only way to exercise what the
+    # deployment actually does: configure itself around the bundled database. This process already
+    # bound its engine to the build path and set variables to build it.
     runtime_environment = {
-        key: value for key, value in os.environ.items() if key != "FAREBEACON_DATABASE_URL"
+        key: value for key, value in os.environ.items() if not key.startswith("FAREBEACON_")
     }
     subprocess.run([sys.executable, __file__, VERIFY_FLAG], check=True, env=runtime_environment)
 
@@ -68,14 +68,6 @@ def verify() -> None:
         sys.path.insert(0, str(source_root))
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
-
-    if not os.environ.get("FAREBEACON_API_TOKEN", "").strip():
-        print(
-            "FAREBEACON_API_TOKEN is missing from this build environment. The application cannot "
-            "start without it, so the deployment would answer every request with a platform error. "
-            "Define it for every environment that builds, and do not mark it as runtime-only.",
-            file=sys.stderr,
-        )
 
     from fastapi.testclient import TestClient
 
@@ -101,7 +93,10 @@ def verify() -> None:
         )
         assert rejected.status_code == 401, rejected.text
 
-    print(f"deployment entrypoint served {total} seeded monitors and rejected an anonymous write")
+    print(
+        f"deployment entrypoint served {total} seeded monitors with no configuration "
+        "and refused an anonymous write"
+    )
 
 
 if __name__ == "__main__":

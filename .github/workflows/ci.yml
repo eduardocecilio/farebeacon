@@ -49,19 +49,10 @@ jobs:
         run: docker run --rm farebeacon:test pytest --cov=farebeacon --cov-report=term-missing
       - name: Demo build and deployment boot
         run: |
-          docker run --rm --user root -v "$PWD:/work" -w /work \
-            -e FAREBEACON_API_TOKEN=demo-only-token-with-at-least-thirty-two-characters \
-            -e FAREBEACON_DEMO_READ_ONLY=true \
-            -e FAREBEACON_NOTIFICATION_BACKEND=disabled \
-            -e FAREBEACON_ENV=demo \
-            farebeacon:test python build_demo_db.py
+          docker run --rm --user root -v "$PWD:/work" -w /work farebeacon:test python build_demo_db.py
           test -s demo.db
           sudo rm -f demo.db
           docker run --rm --user root -v "$PWD:/work" -w /work \
-            -e FAREBEACON_API_TOKEN=demo-only-token-with-at-least-thirty-two-characters \
-            -e FAREBEACON_DEMO_READ_ONLY=true \
-            -e FAREBEACON_NOTIFICATION_BACKEND=disabled \
-            -e FAREBEACON_ENV=demo \
             farebeacon:test python build_demo_db.py --verify
 
       - name: OpenAPI generation

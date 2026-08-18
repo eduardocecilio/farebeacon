@@ -22,7 +22,9 @@ def create_app(
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
     resolved_database = app_database or database
-    resolved_settings.require_api_token()
+    if not resolved_settings.demo_read_only:
+        # A read-only demo needs no write credential: writes are refused rather than authorized.
+        resolved_settings.require_api_token()
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
