@@ -24,6 +24,10 @@ is the only writable path, and points the application at the copy.
 The schema comes from the models, the same way the test suite builds its database. Alembic remains
 the path for a PostgreSQL deployment, where migrations run as an explicit operation.
 
+If the bundled file never reaches the function, the first boot builds and seeds the database in the
+temporary directory instead. The demo therefore does not depend on a build artifact surviving the
+packaging step, and the build itself boots the entrypoint both ways before shipping.
+
 That is the whole setup. No managed database, no account, no credential, and no cost. Every
 deployment rebuilds the data, so the demo cannot drift or fill up.
 

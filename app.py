@@ -27,12 +27,27 @@ if _SRC.is_dir() and str(_SRC) not in sys.path:
 _TEMPORARY_ROOT = Path(tempfile.gettempdir())
 os.environ.setdefault("FAREBEACON_ARTIFACTS_ROOT", str(_TEMPORARY_ROOT / "farebeacon-artifacts"))
 
-if not os.environ.get("FAREBEACON_DATABASE_URL") and BUNDLED_DEMO_DATABASE.is_file():
+_SEED_ON_BOOT = False
+if not os.environ.get("FAREBEACON_DATABASE_URL"):
     _RUNTIME_DATABASE = _TEMPORARY_ROOT / "farebeacon-demo.db"
-    if not _RUNTIME_DATABASE.is_file():
+    if not _RUNTIME_DATABASE.is_file() and BUNDLED_DEMO_DATABASE.is_file():
         shutil.copy2(BUNDLED_DEMO_DATABASE, _RUNTIME_DATABASE)
+    _SEED_ON_BOOT = not _RUNTIME_DATABASE.is_file()
     os.environ["FAREBEACON_DATABASE_URL"] = f"sqlite+pysqlite:///{_RUNTIME_DATABASE}"
-    os.environ.setdefault("FAREBEACON_CELERY_TASK_ALWAYS_EAGER", "true")
+    # Forced, not defaulted: a per-instance database cannot be shared with a worker, and a leftover
+    # variable from a Compose `.env` must not point this deployment at a broker that does not exist.
+    os.environ["FAREBEACON_CELERY_TASK_ALWAYS_EAGER"] = "true"
+
+if _SEED_ON_BOOT:
+    # The bundled database did not reach the function. Build the demo data here instead of serving
+    # every request from a database file that cannot be created on a read-only filesystem.
+    from farebeacon.infrastructure.db.models import Base  # noqa: E402
+    from farebeacon.infrastructure.db.session import database  # noqa: E402
+    from farebeacon.scripts.seed_demo import seed  # noqa: E402
+
+    Base.metadata.create_all(database.engine)
+    with database.session() as _session:
+        seed(_session)
 
 from farebeacon.api.main import app  # noqa: E402
 
