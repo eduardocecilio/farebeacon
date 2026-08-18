@@ -16,10 +16,13 @@ Writes still require the Bearer token, and notifications stay disabled.
 
 ## Where the data comes from
 
-The demo ships its own database. `build_demo_db.py` runs as the Vercel build command: it applies the
-real Alembic schema to a SQLite file, seeds the deterministic monitors, and leaves `demo.db` inside
+The demo ships its own database. `build_demo_db.py` runs as the Vercel build command: it creates a
+SQLite file from the SQLAlchemy models, seeds the deterministic monitors, and leaves `demo.db` inside
 the deployment bundle. At startup the function copies that file into its temporary directory, which
 is the only writable path, and points the application at the copy.
+
+The schema comes from the models, the same way the test suite builds its database. Alembic remains
+the path for a PostgreSQL deployment, where migrations run as an explicit operation.
 
 That is the whole setup. No managed database, no account, no credential, and no cost. Every
 deployment rebuilds the data, so the demo cannot drift or fill up.

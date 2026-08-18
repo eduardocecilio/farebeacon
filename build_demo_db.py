@@ -1,8 +1,12 @@
 """Build the demo database that ships inside the deployment bundle.
 
 Vercel runs this as the build command, after dependencies are installed and before the deployment is
-packaged. It creates a SQLite file with the real Alembic schema and deterministic MockSource data, so
-the public demo needs no managed database, no account, and no credential.
+packaged. It creates a SQLite file with deterministic MockSource data, so the public demo needs no
+managed database, no account, and no credential.
+
+The schema comes from the SQLAlchemy models, which is also how the test suite builds its database.
+Alembic stays the path for PostgreSQL deployments: migration 0002 adds foreign-key columns, and
+SQLite cannot ALTER constraints.
 
 The file is disposable by design: every deployment rebuilds it. A deployment that needs durable
 state sets `FAREBEACON_DATABASE_URL` instead, and this database is then ignored at runtime. See
@@ -31,15 +35,11 @@ def main() -> None:
     if source_root.is_dir() and str(source_root) not in sys.path:
         sys.path.insert(0, str(source_root))
 
-    from alembic import command
-    from alembic.config import Config
-
-    alembic_config = Config(str(ROOT / "alembic.ini"))
-    alembic_config.set_main_option("script_location", str(ROOT / "migrations"))
-    command.upgrade(alembic_config, "head")
-
+    from farebeacon.infrastructure.db.models import Base
     from farebeacon.infrastructure.db.session import database
     from farebeacon.scripts.seed_demo import seed
+
+    Base.metadata.create_all(database.engine)
 
     with database.session() as session:
         monitor_ids = seed(session)

@@ -27,9 +27,11 @@ The demo deploys the same code with configuration only.
 - `/ready` reports Redis only when the broker or the result backend needs it.
 - `FAREBEACON_DEMO_READ_ONLY` answers `GET`, `HEAD`, and `OPTIONS` without a token. Every write still
   requires the Bearer token, so no write credential is published.
-- The demo carries its own database. The build command applies the real Alembic schema to a SQLite
-  file and seeds it; the function copies that file into its temporary directory at startup. No
-  managed database, account, or credential is involved, and every deployment rebuilds the data.
+- The demo carries its own database. The build command creates a SQLite file from the models and
+  seeds it; the function copies that file into its temporary directory at startup. No managed
+  database, account, or credential is involved, and every deployment rebuilds the data. Alembic
+  stays the schema path for PostgreSQL deployments, because SQLite cannot ALTER the constraints that
+  migration 0002 adds.
 - Migrations and seeding are build or workflow operations. Neither ever runs inside a request.
 - The demo keeps `FAREBEACON_NOTIFICATION_BACKEND=disabled`.
 
