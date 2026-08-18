@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -35,6 +35,23 @@ class Settings(BaseSettings):
     telegram_bot_token: SecretStr | None = None
     telegram_chat_id: str | None = None
     telegram_request_timeout_seconds: int = Field(default=10, ge=1, le=60)
+
+    @model_validator(mode="before")
+    @classmethod
+    def ignore_empty_values(cls, data: Any) -> Any:
+        """Treat an empty variable as an absent one.
+
+        Deployment platforms and `.env` files routinely carry a declared name with no value. An
+        empty string is not a boolean, an integer, or a token, and reading it as one turns a blank
+        field into a startup crash instead of the documented default.
+        """
+        if not isinstance(data, dict):
+            return data
+        return {
+            key: value
+            for key, value in data.items()
+            if not (isinstance(value, str) and not value.strip())
+        }
 
     @model_validator(mode="after")
     def reject_insecure_production_configuration(self) -> Settings:
