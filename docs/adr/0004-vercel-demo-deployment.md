@@ -27,12 +27,17 @@ The demo deploys the same code with configuration only.
 - `/ready` reports Redis only when the broker or the result backend needs it.
 - `FAREBEACON_DEMO_READ_ONLY` answers `GET`, `HEAD`, and `OPTIONS` without a token. Every write still
   requires the Bearer token, so no write credential is published.
-- PostgreSQL comes from a managed provider. Migrations and seeding run as explicit operations, never
-  inside a request.
+- The demo carries its own database. The build command creates a SQLite file from the models and
+  seeds it; the function copies that file into its temporary directory at startup. No managed
+  database, account, or credential is involved, and every deployment rebuilds the data. Alembic
+  stays the schema path for PostgreSQL deployments, because SQLite cannot ALTER the constraints that
+  migration 0002 adds.
+- Migrations and seeding are build or workflow operations. Neither ever runs inside a request.
 - The demo keeps `FAREBEACON_NOTIFICATION_BACKEND=disabled`.
 
-If Vercel Queues proves unsuitable, setting `FAREBEACON_CELERY_TASK_ALWAYS_EAGER=true` runs the same
-tasks inline. That fallback is a configuration change, not a code change.
+The bundled database is per-instance, so the demo runs tasks inline rather than through a queue.
+Setting `FAREBEACON_DATABASE_URL` to a managed PostgreSQL instance makes it inert and lets the queue
+path run for real. Both are configuration, not code.
 
 ## Consequences
 
@@ -41,8 +46,10 @@ tasks inline. That fallback is a configuration change, not a code change.
   visitor push messages into a private chat;
 - the artifact store writes to the function's temporary filesystem, so raw artifacts do not survive
   an instance; a durable deployment needs the S3-compatible adapter that is already in the backlog;
-- scheduled evaluation is not equivalent: platform cron is coarse compared to Celery Beat, so demo
-  data changes when someone runs the seeding operation, not continuously;
+- the demo's data changes when a deployment rebuilds it, not continuously, because there is no
+  Celery Beat and no long-lived scheduler;
+- writes do not survive a function instance while the bundled database is in use, which is
+  acceptable only because the demo is read-only for visitors;
 - the demo's isolation is weaker than the Compose stack's, where only `notification-worker` holds
   the bot token and reaches the internet. Every function in a serverless project shares the same
   environment, which is another reason notifications stay disabled there.

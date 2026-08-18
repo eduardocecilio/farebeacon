@@ -20,3 +20,4 @@ secrets/
 *.key
 *.pem
 docker-compose.override.yml
+demo.db

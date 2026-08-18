@@ -21,3 +21,4 @@ dist/
 htmlcov/
 out/
 docker-compose.override.yml
+demo.db

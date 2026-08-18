@@ -61,8 +61,8 @@ networks, resource sizing, and live post-deploy checks.
 
 ## Vercel
 
-A reduced public demo runs on Vercel: the API on the Python runtime, Celery tasks as queue-triggered
-functions, and PostgreSQL from a managed provider. It is configuration only, and the procedure is in
+A reduced public demo runs on Vercel: the API on the Python runtime and a disposable database built
+into the deployment bundle. It is configuration only, and the procedure is in
 [the demo deployment guide](vercel-demo.md).
 
 That deployment is a demo, not a production promotion. It has no persistent worker process, no

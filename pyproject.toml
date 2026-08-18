@@ -54,8 +54,13 @@ packages = ["src/farebeacon"]
 [tool.vercel]
 entrypoint = "app:app"
 
-[[tool.vercel.subscribers]]
-entrypoint = "worker:app"
+[tool.vercel.scripts]
+build = "python build_demo_db.py"
+
+# The queue-triggered Celery subscriber (worker.py) is enabled only by a deployment with a shared
+# database; the bundled demo database is per-instance, so its tasks run inline instead.
+# [[tool.vercel.subscribers]]
+# entrypoint = "worker:app"
 
 [tool.ruff]
 line-length = 100
@@ -69,6 +74,7 @@ select = ["B", "E", "F", "I", "UP"]
 "tests/conftest.py" = ["E402"]
 "app.py" = ["E402"]
 "worker.py" = ["E402"]
+"build_demo_db.py" = ["E402"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"
