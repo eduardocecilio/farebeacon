@@ -210,11 +210,13 @@ The Compose stack is the reference topology, and a self-hosted deployment should
 [docs/operations.md](docs/operations.md) for backup scope, secret handling, and the acceptance
 boundary.
 
-A reduced public demo can also run on Vercel: the API deploys to the Python runtime, Celery tasks
-run as queue-triggered functions through Vercel Queues, and PostgreSQL comes from a managed
-provider. The demo answers reads without a token, requires the token for every write, and keeps
-notifications disabled. It deploys the same code through environment variables alone — there is no
-separate serverless codebase. See [docs/vercel-demo.md](docs/vercel-demo.md) and
+A reduced public demo can also run on Vercel, with no database service, account, or cost: the build
+command seeds a SQLite database into the deployment bundle, and the function copies it into its
+temporary directory at startup. The demo answers reads without a token, requires the token for every
+write, and keeps notifications disabled. It deploys the same code through configuration alone —
+there is no separate serverless codebase, and pointing `FAREBEACON_DATABASE_URL` at a managed
+PostgreSQL instance upgrades it to durable state with a queue-backed worker. See
+[docs/vercel-demo.md](docs/vercel-demo.md) and
 [ADR 0004](docs/adr/0004-vercel-demo-deployment.md) for what it trades away.
 
 ## Source policy
