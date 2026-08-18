@@ -51,8 +51,15 @@ Import the repository. The Python runtime resolves everything from `pyproject.to
 | `FAREBEACON_NOTIFICATION_BACKEND` | `disabled` | never message a private chat from a public URL |
 | `FAREBEACON_ENV` | `demo` | keeps the environment honest in `/health` and logs |
 
+Add only those four. Do not import `.env.example` as a whole: it configures the Compose stack, and
+the platform rejects reserved names such as `TZ` with `Environment variable "TZ" is invalid`. No
+timezone variable is needed here, because the application is UTC everywhere — Celery, stored
+timestamps, and rendered alert messages.
+
 Leave `FAREBEACON_DATABASE_URL` unset: setting it disables the bundled database. `FAREBEACON_REDIS_URL`
 stays unset too, and readiness no longer asks for a Redis that nothing needs.
+`FAREBEACON_POSTGRES_PASSWORD` and `FAREBEACON_PORT` belong to Compose and mean nothing in a
+function.
 
 ## 3. Verify the deployment
 
