@@ -24,6 +24,10 @@ is the only writable path, and points the application at the copy.
 The schema comes from the models, the same way the test suite builds its database. Alembic remains
 the path for a PostgreSQL deployment, where migrations run as an explicit operation.
 
+If the bundled file never reaches the function, the first boot builds and seeds the database in the
+temporary directory instead. The demo therefore does not depend on a build artifact surviving the
+packaging step, and the build itself boots the entrypoint both ways before shipping.
+
 That is the whole setup. No managed database, no account, no credential, and no cost. Every
 deployment rebuilds the data, so the demo cannot drift or fill up.
 
@@ -50,6 +54,11 @@ Import the repository. The Python runtime resolves everything from `pyproject.to
 | `FAREBEACON_DEMO_READ_ONLY` | `true` | anonymous reads, authenticated writes |
 | `FAREBEACON_NOTIFICATION_BACKEND` | `disabled` | never message a private chat from a public URL |
 | `FAREBEACON_ENV` | `demo` | keeps the environment honest in `/health` and logs |
+
+Add all four to **every** environment the project builds, not only production: a preview build runs
+the same startup check and fails without them. Keep `FAREBEACON_API_TOKEN` available at build time —
+a variable marked as runtime-only is invisible to the build, which boots the application before
+shipping it.
 
 Add only those four. Do not import `.env.example` as a whole: it configures the Compose stack, and
 the platform rejects reserved names such as `TZ` with `Environment variable "TZ" is invalid`. No
