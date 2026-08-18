@@ -206,10 +206,16 @@ independent workers.
 
 ## Deployment
 
-The full stack needs long-running workers and a scheduler, so it cannot run entirely on Vercel. A
-future hybrid deployment may put only the stateless HTTP API/web edge on Vercel while PostgreSQL,
-Redis, Celery workers, and Beat run on managed persistent services. That adapter is intentionally
-not claimed as production-ready in this release. See [docs/operations.md](docs/operations.md).
+The Compose stack is the reference topology, and a self-hosted deployment should run it. See
+[docs/operations.md](docs/operations.md) for backup scope, secret handling, and the acceptance
+boundary.
+
+A reduced public demo can also run on Vercel: the API deploys to the Python runtime, Celery tasks
+run as queue-triggered functions through Vercel Queues, and PostgreSQL comes from a managed
+provider. The demo answers reads without a token, requires the token for every write, and keeps
+notifications disabled. It deploys the same code through environment variables alone — there is no
+separate serverless codebase. See [docs/vercel-demo.md](docs/vercel-demo.md) and
+[ADR 0004](docs/adr/0004-vercel-demo-deployment.md) for what it trades away.
 
 ## Source policy
 

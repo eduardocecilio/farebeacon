@@ -1,0 +1,56 @@
+name: Demo database
+
+# Applies migrations to the public demo database and optionally seeds it. Manual only: schema
+# changes and seeding must never run inside a request. See docs/vercel-demo.md.
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: Seed the demo monitors after migrating
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demo-database
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FAREBEACON_DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL }}
+      FAREBEACON_ENV: demo
+      FAREBEACON_CELERY_TASK_ALWAYS_EAGER: "true"
+      FAREBEACON_NOTIFICATION_BACKEND: disabled
+      FAREBEACON_ARTIFACTS_ROOT: /tmp/farebeacon-artifacts
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Fail fast without a database URL
+        run: test -n "$FAREBEACON_DATABASE_URL" || (echo 'DEMO_DATABASE_URL secret is missing' >&2; exit 1)
+
+      - name: Build runtime image
+        run: docker build --target runtime -t farebeacon:runtime -f docker/api.Dockerfile .
+
+      - name: Apply migrations
+        run: |
+          docker run --rm \
+            -e FAREBEACON_DATABASE_URL \
+            -e FAREBEACON_ENV \
+            -e FAREBEACON_ARTIFACTS_ROOT \
+            farebeacon:runtime alembic upgrade head
+
+      - name: Seed demo data
+        if: ${{ inputs.seed }}
+        run: |
+          docker run --rm \
+            -e FAREBEACON_DATABASE_URL \
+            -e FAREBEACON_ENV \
+            -e FAREBEACON_CELERY_TASK_ALWAYS_EAGER \
+            -e FAREBEACON_NOTIFICATION_BACKEND \
+            -e FAREBEACON_ARTIFACTS_ROOT \
+            farebeacon:runtime python -m farebeacon.scripts.seed_demo

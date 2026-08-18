@@ -49,6 +49,14 @@ Source = "https://github.com/eduardocecilio/farebeacon"
 [tool.hatch.build.targets.wheel]
 packages = ["src/farebeacon"]
 
+# Optional public demo deployment. The Compose stack remains the reference topology; see
+# docs/vercel-demo.md and docs/adr/0004-vercel-demo-deployment.md.
+[tool.vercel]
+entrypoint = "app:app"
+
+[[tool.vercel.subscribers]]
+entrypoint = "worker:app"
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
@@ -59,6 +67,8 @@ select = ["B", "E", "F", "I", "UP"]
 [tool.ruff.lint.per-file-ignores]
 "migrations/versions/*.py" = ["E501"]
 "tests/conftest.py" = ["E402"]
+"app.py" = ["E402"]
+"worker.py" = ["E402"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"

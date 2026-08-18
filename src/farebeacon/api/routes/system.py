@@ -38,12 +38,13 @@ def ready(
         checks["database"] = "ok"
     except SQLAlchemyError:
         checks["database"] = "unavailable"
-    try:
-        client = Redis.from_url(settings.redis_url, socket_connect_timeout=1, socket_timeout=1)
-        checks["redis"] = "ok" if client.ping() else "unavailable"
-        client.close()
-    except RedisError:
-        checks["redis"] = "unavailable"
+    if settings.requires_redis:
+        try:
+            client = Redis.from_url(settings.redis_url, socket_connect_timeout=1, socket_timeout=1)
+            checks["redis"] = "ok" if client.ping() else "unavailable"
+            client.close()
+        except RedisError:
+            checks["redis"] = "unavailable"
     data = ReadyRead(
         status="ready" if set(checks.values()) == {"ok"} else "not_ready",
         checks=checks,
