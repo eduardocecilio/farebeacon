@@ -31,7 +31,10 @@ _SEED_ON_BOOT = False
 if not os.environ.get("FAREBEACON_DATABASE_URL"):
     _RUNTIME_DATABASE = _TEMPORARY_ROOT / "farebeacon-demo.db"
     if not _RUNTIME_DATABASE.is_file() and BUNDLED_DEMO_DATABASE.is_file():
-        shutil.copy2(BUNDLED_DEMO_DATABASE, _RUNTIME_DATABASE)
+        # copyfile, not copy2: the bundled file may be read-only, and SQLite must be able to write
+        # to the copy. Preserving the source mode would produce a database nobody can open.
+        shutil.copyfile(BUNDLED_DEMO_DATABASE, _RUNTIME_DATABASE)
+        _RUNTIME_DATABASE.chmod(0o600)
     _SEED_ON_BOOT = not _RUNTIME_DATABASE.is_file()
     os.environ["FAREBEACON_DATABASE_URL"] = f"sqlite+pysqlite:///{_RUNTIME_DATABASE}"
     # Forced, not defaulted: a per-instance database cannot be shared with a worker, and a leftover
