@@ -69,6 +69,14 @@ def verify() -> None:
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
 
+    if not os.environ.get("FAREBEACON_API_TOKEN", "").strip():
+        print(
+            "FAREBEACON_API_TOKEN is missing from this build environment. The application cannot "
+            "start without it, so the deployment would answer every request with a platform error. "
+            "Define it for every environment that builds, and do not mark it as runtime-only.",
+            file=sys.stderr,
+        )
+
     from fastapi.testclient import TestClient
 
     import app as entrypoint

@@ -55,6 +55,11 @@ Import the repository. The Python runtime resolves everything from `pyproject.to
 | `FAREBEACON_NOTIFICATION_BACKEND` | `disabled` | never message a private chat from a public URL |
 | `FAREBEACON_ENV` | `demo` | keeps the environment honest in `/health` and logs |
 
+Add all four to **every** environment the project builds, not only production: a preview build runs
+the same startup check and fails without them. Keep `FAREBEACON_API_TOKEN` available at build time —
+a variable marked as runtime-only is invisible to the build, which boots the application before
+shipping it.
+
 Add only those four. Do not import `.env.example` as a whole: it configures the Compose stack, and
 the platform rejects reserved names such as `TZ` with `Environment variable "TZ" is invalid`. No
 timezone variable is needed here, because the application is UTC everywhere — Celery, stored
