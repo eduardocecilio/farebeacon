@@ -26,8 +26,10 @@ def test_a_monitor_page_shows_history_offers_and_alerts(client: TestClient) -> N
     assert "Price history" in response.text
     assert "Current offers" in response.text
     assert "Alert events" in response.text
-    # Two runs with a price drop produce a trend, which is what the sparkline draws.
+    # Several runs with a moving price produce a trend, which is what the sparkline draws.
     assert "<polyline" in response.text
+    # More history than one page fits is what gives htmx something to do.
+    assert "hx-get" in response.text
 
 
 def test_the_price_history_fragment_renders_alone(client: TestClient) -> None:

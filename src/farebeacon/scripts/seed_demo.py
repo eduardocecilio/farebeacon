@@ -5,13 +5,15 @@ database returns the existing monitors and runs instead of duplicating them. It 
 read-only demo deployment described in docs/vercel-demo.md, never for a database that owns real
 history.
 
-Each monitor is executed twice with a lower price on the second run, which is what gives the demo a
-price history with more than one point and one `new_historical_low` alert event.
+Each monitor is executed several times with the source price moving between runs, which is what
+gives the demo a price history with a visible shape rather than a straight line, and produces real
+`new_historical_low` and `price_below_limit` alert events along the way.
 """
 
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -21,7 +23,7 @@ from farebeacon.api.schemas import MonitorCreate
 from farebeacon.application.monitors import create_monitor
 from farebeacon.application.runs import create_search_run
 from farebeacon.domain.enums import RunTrigger
-from farebeacon.infrastructure.db.models import MonitorSource
+from farebeacon.infrastructure.db.models import MonitorSource, QuoteObservation, SearchRun
 from farebeacon.infrastructure.db.session import database
 from farebeacon.sources.registry import get_source_registry
 from farebeacon.tasks.orchestration import orchestrate_run
@@ -53,7 +55,13 @@ DEMO_MONITORS: tuple[dict[str, Any], ...] = (
     },
 )
 
-PRICE_DROP_MINOR = 20000
+# Applied to the source price between runs, in minor units. A fare that only falls looks synthetic;
+# one that rises before falling further is what a monitor is actually for.
+PRICE_STEPS_MINOR = (-9000, +4500, -14000, -6500)
+# Seeding runs in milliseconds, which would stamp every observation with the same minute and leave
+# the price history without a time axis. The observations are restamped one day apart afterwards.
+# The data is seeded, not observed: the spacing is as synthetic as the prices MockSource returns.
+RUN_INTERVAL = timedelta(days=1)
 
 
 def seed(session: Session) -> list[str]:
@@ -71,8 +79,12 @@ def seed(session: Session) -> list[str]:
             LOGGER.info("monitor already seeded", extra={"monitor_id": monitor.id})
             continue
         _execute_run(session, monitor_id=monitor.id, key=f"demo-seed-run-{index}-baseline")
-        _apply_price_drop(session, monitor_id=monitor.id, payload=payload)
-        _execute_run(session, monitor_id=monitor.id, key=f"demo-seed-run-{index}-drop")
+        price = int(payload["source_configuration"]["mock"]["base_price_minor"])
+        for step, delta in enumerate(PRICE_STEPS_MINOR):
+            price = max(price + delta, 1000)
+            _set_source_price(session, monitor_id=monitor.id, price_minor=price)
+            _execute_run(session, monitor_id=monitor.id, key=f"demo-seed-run-{index}-step-{step}")
+        _spread_observations_over_time(session, monitor_id=monitor.id)
     return monitor_ids
 
 
@@ -87,9 +99,8 @@ def _execute_run(session: Session, *, monitor_id: str, key: str) -> None:
         orchestrate_run.apply_async(args=[run.id], queue="orchestration")
 
 
-def _apply_price_drop(session: Session, *, monitor_id: str, payload: dict[str, Any]) -> None:
-    configuration = payload["source_configuration"]["mock"]
-    dropped = int(configuration["base_price_minor"]) - PRICE_DROP_MINOR
+def _set_source_price(session: Session, *, monitor_id: str, price_minor: int) -> None:
+    """Move the source price, the way a real fare moves between two checks."""
     monitor_source = session.scalar(
         select(MonitorSource).where(MonitorSource.monitor_id == monitor_id)
     )
@@ -97,8 +108,27 @@ def _apply_price_drop(session: Session, *, monitor_id: str, payload: dict[str, A
         return
     monitor_source.configuration = {
         **monitor_source.configuration,
-        "base_price_minor": dropped,
+        "base_price_minor": price_minor,
     }
+    session.commit()
+
+
+def _spread_observations_over_time(session: Session, *, monitor_id: str) -> None:
+    """Restamp each run's observations one interval apart, ending now."""
+    run_ids = list(
+        session.scalars(
+            select(SearchRun.id)
+            .where(SearchRun.monitor_id == monitor_id)
+            .order_by(SearchRun.created_at, SearchRun.id)
+        ).all()
+    )
+    now = datetime.now(UTC)
+    for position, run_id in enumerate(reversed(run_ids)):
+        observed_at = now - RUN_INTERVAL * position
+        for observation in session.scalars(
+            select(QuoteObservation).where(QuoteObservation.search_run_id == run_id)
+        ).all():
+            observation.observed_at = observed_at
     session.commit()
 
 

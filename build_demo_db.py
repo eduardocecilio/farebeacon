@@ -104,6 +104,12 @@ def verify() -> None:
         stylesheet = client.get("/static/styles.css")
         assert stylesheet.status_code == 200, stylesheet.text
 
+        monitor_id = landing.text.split('href="/monitors/', 1)[1].split('"', 1)[0]
+        page = client.get(f"/monitors/{monitor_id}")
+        assert page.status_code == 200, page.text
+        assert "<polyline" in page.text, "the price history has no trend to draw"
+        assert "hx-get" in page.text, "the history pager is missing, so htmx serves no purpose"
+
         health = client.get("/health")
         assert health.status_code == 200, health.text
 
