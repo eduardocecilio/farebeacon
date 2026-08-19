@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ monitor.name }} — FareBeacon{% endblock %}
+{% block content %}
+<section class="intro">
+  <p class="crumb"><a href="/">&larr; all monitors</a></p>
+  <h1>{{ monitor.name }}</h1>
+  <p class="route-line">
+    {{ monitor.origin_iata }} &rarr; {{ monitor.destination_iata }} &middot;
+    {{ monitor.departure_dates | map('string') | join(', ') }} &middot;
+    {{ monitor.adults }} adult{{ 's' if monitor.adults > 1 }} &middot;
+    {{ monitor.cabin_class }}
+  </p>
+</section>
+
+{% with monitor_id = monitor.id %}
+{% include "_price_history.html" %}
+{% endwith %}
+
+<section class="panel">
+  <header class="panel-head">
+    <h2>Current offers</h2>
+    <p class="meta">{{ offers_total }} normalized offer{{ 's' if offers_total != 1 }}</p>
+  </header>
+  <table>
+    <thead>
+      <tr><th>Price</th><th>Stops</th><th>Duration</th><th>Source</th><th>Observed</th></tr>
+    </thead>
+    <tbody>
+      {% for row in offers %}
+      <tr>
+        <td class="numeric strong">{{ row.price }}</td>
+        <td>{{ 'direct' if row.offer.stops == 0 else row.offer.stops ~ ' stop' ~ ('s' if row.offer.stops > 1 else '') }}</td>
+        <td>{{ row.duration }}</td>
+        <td>{{ row.offer.source_name }}</td>
+        <td>{{ row.offer.observed_at.strftime('%Y-%m-%d %H:%M UTC') }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="meta">No offers observed yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <header class="panel-head">
+    <h2>Alert events</h2>
+    <p class="meta">evaluated rules and their delivery state</p>
+  </header>
+  <table>
+    <thead>
+      <tr><th>Rule</th><th>Status</th><th>Detail</th><th>Created</th></tr>
+    </thead>
+    <tbody>
+      {% for alert in alerts %}
+      <tr>
+        <td>{{ alert.rule_type }}</td>
+        <td><span class="badge {{ alert.status }}">{{ alert.status }}</span></td>
+        <td class="detail">{{ alert.suppression_reason or alert.error_message or alert.provider or '—' }}</td>
+        <td>{{ alert.created_at.strftime('%Y-%m-%d %H:%M UTC') }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="meta">No rule has matched yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
