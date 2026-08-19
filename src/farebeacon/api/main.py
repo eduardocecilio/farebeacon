@@ -11,11 +11,11 @@ from fastapi.staticfiles import StaticFiles
 from farebeacon.api.errors import install_error_handlers
 from farebeacon.api.middleware import RequestContextMiddleware
 from farebeacon.api.routes import alerts, monitors, results, runs, sources, system
-from farebeacon.web import routes as web
 from farebeacon.application.common import sync_source_definitions
 from farebeacon.config import Settings, get_settings
 from farebeacon.infrastructure.db.session import Database, database
 from farebeacon.sources.registry import get_source_registry
+from farebeacon.web import routes as web
 
 
 def create_app(
