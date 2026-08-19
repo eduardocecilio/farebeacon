@@ -1,0 +1,52 @@
+<section class="panel" id="price-history">
+  <header class="panel-head">
+    <h2>Price history</h2>
+    <p class="meta">{{ history.total }} observation{{ 's' if history.total != 1 }} recorded</p>
+  </header>
+
+  {% if history.chart %}
+  <figure class="chart">
+    <svg viewBox="0 0 {{ history.chart.width }} {{ history.chart.height }}" role="img"
+         aria-label="Observed prices over time" preserveAspectRatio="none">
+      <polygon class="area" points="{{ history.chart.area }}" />
+      <polyline class="line {{ 'down' if history.chart.dropped else 'up' }}"
+                points="{{ history.chart.polyline }}" />
+    </svg>
+    <figcaption>
+      <span>low {{ history.chart.lowest }}</span>
+      <span>high {{ history.chart.highest }}</span>
+    </figcaption>
+  </figure>
+  {% else %}
+  <p class="meta">A trend needs at least two observations.</p>
+  {% endif %}
+
+  <table>
+    <thead>
+      <tr><th>Observed</th><th>Price</th><th>Source</th></tr>
+    </thead>
+    <tbody>
+      {% for point in history.points %}
+      <tr>
+        <td>{{ point.observation.observed_at.strftime('%Y-%m-%d %H:%M UTC') }}</td>
+        <td class="numeric">{{ point.price }}</td>
+        <td>{{ point.observation.source_name }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if history.pages > 1 %}
+  <nav class="pager">
+    {% if history.page > 1 %}
+    <button hx-get="/monitors/{{ monitor_id }}/price-history?page={{ history.page - 1 }}"
+            hx-target="#price-history" hx-swap="outerHTML">Newer</button>
+    {% endif %}
+    <span>page {{ history.page }} of {{ history.pages }}</span>
+    {% if history.page < history.pages %}
+    <button hx-get="/monitors/{{ monitor_id }}/price-history?page={{ history.page + 1 }}"
+            hx-target="#price-history" hx-swap="outerHTML">Older</button>
+    {% endif %}
+  </nav>
+  {% endif %}
+</section>

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="intro">
+  <h1>Airfare monitors</h1>
+  <p>
+    Every monitor below was executed by the same pipeline the project ships: a source produces raw
+    offers, a parser normalizes them, equivalent itineraries are correlated, prices are persisted as
+    history, and alert rules are evaluated against the cheapest observation of each run.
+  </p>
+</section>
+
+<ul class="cards">
+  {% for card in cards %}
+  <li class="card">
+    <a href="/monitors/{{ card.monitor.id }}">
+      <span class="route">{{ card.monitor.origin_iata }} <em>&rarr;</em> {{ card.monitor.destination_iata }}</span>
+      <h2>{{ card.monitor.name }}</h2>
+      {% if card.cheapest %}
+      <p class="price">{{ card.cheapest }}</p>
+      <p class="meta">cheapest current offer &middot; {{ card.source }}</p>
+      {% else %}
+      <p class="meta">no offers observed yet</p>
+      {% endif %}
+      <dl class="facts">
+        <div><dt>Passengers</dt><dd>{{ card.monitor.adults }} adult{{ 's' if card.monitor.adults > 1 }}</dd></div>
+        <div><dt>Checks</dt><dd>every {{ card.monitor.check_interval_minutes }} min</dd></div>
+        <div><dt>Sources</dt><dd>{{ card.monitor.sources | join(', ') }}</dd></div>
+      </dl>
+    </a>
+  </li>
+  {% else %}
+  <li class="empty">No monitors have been seeded in this deployment.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

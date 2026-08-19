@@ -9,7 +9,7 @@ These items are intentionally outside the first delivery:
 - idempotency-record and artifact-retention cleanup;
 - explicit retry/reconciliation commands for failed or stale notification deliveries;
 - secure one-time Telegram chat linking for a future web interface;
-- Jinja2/HTMX interface that consumes the API;
+- interactive slices of the interface: starting a run, creating a monitor, pausing one;
 - metrics, worker heartbeat, backlog visibility, and tracing;
 - S3/MinIO artifact adapter;
 - first approved structured flight API;

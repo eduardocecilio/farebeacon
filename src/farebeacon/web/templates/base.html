@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}FareBeacon{% endblock %}</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="/static/htmx.min.js" defer></script>
+  </head>
+  <body>
+    <header class="masthead">
+      <a class="wordmark" href="/">FareBeacon</a>
+      <nav>
+        <a href="/docs">API</a>
+        <a href="https://github.com/eduardocecilio/farebeacon">Source</a>
+      </nav>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+    <footer>
+      <p>
+        Open-source airfare monitoring. This deployment is a read-only demo seeded with
+        <code>MockSource</code> data; writes are refused and notifications are disabled.
+      </p>
+    </footer>
+  </body>
+</html>

@@ -26,6 +26,7 @@ external provider, scraper, browser, account, or API key.
 - local raw-artifact storage behind a storage port
 - Celery Beat scheduling for due monitors
 - public liveness, readiness, and version endpoints
+- server-rendered read-only interface with price-history charts
 
 No real flight source, scraping, Playwright, WhatsApp integration, booking, payment, or ticket
 issuance is included.
@@ -209,6 +210,10 @@ independent workers.
 The Compose stack is the reference topology, and a self-hosted deployment should run it. See
 [docs/operations.md](docs/operations.md) for backup scope, secret handling, and the acceptance
 boundary.
+
+The deployment serves a read-only interface at `/`: monitors, price history with the observed
+trend, normalized offers, and alert delivery state. It renders from the same application services
+the API exposes, so the HTTP API remains the only integration surface.
 
 A reduced public demo can also run on Vercel with no database service, account, cost, or
 configuration: the build command seeds a SQLite database into the deployment bundle, the function

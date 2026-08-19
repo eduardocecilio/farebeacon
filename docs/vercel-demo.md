@@ -7,6 +7,8 @@ The Compose stack remains the reference topology. Nothing here changes it.
 
 ## What the demo serves
 
+- a read-only interface at `/`: monitors, price history with the observed trend, normalized
+  offers, and alert delivery state;
 - the OpenAPI document and Swagger UI at `/docs` and `/openapi.json`;
 - `GET` access to monitors, runs, offers, price history, alerts, and sources without a token;
 - seeded MockSource data with a real price drop, so price history has more than one point and one

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 from redis import Redis
 from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
@@ -15,16 +15,6 @@ from farebeacon.config import Settings
 from farebeacon.infrastructure.db.session import Database
 
 router = APIRouter(tags=["system"])
-
-
-@router.get("/", include_in_schema=False)
-def index() -> RedirectResponse:
-    """Send a visitor to the interactive documentation.
-
-    The API has no representation of its own root, and answering a bare 404 there is a poor first
-    contact for anyone who opens the deployment in a browser.
-    """
-    return RedirectResponse(url="/docs")
 
 
 @router.get("/health", response_model=ApiResponse[HealthRead])
