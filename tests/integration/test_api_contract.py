@@ -5,6 +5,12 @@ from collections.abc import Iterator
 from fastapi.testclient import TestClient
 
 
+def test_the_root_points_a_visitor_to_the_documentation(client: TestClient) -> None:
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == "/docs"
+
+
 def test_authentication_error_uses_stable_envelope(client: TestClient) -> None:
     response = client.get("/api/v1/monitors")
     assert response.status_code == 401

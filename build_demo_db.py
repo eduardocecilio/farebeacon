@@ -96,6 +96,10 @@ def verify() -> None:
     import app as entrypoint
 
     with TestClient(entrypoint.app) as client:
+        landing = client.get("/", follow_redirects=False)
+        assert landing.status_code == 307, landing.text
+        assert landing.headers["location"] == "/docs", landing.headers["location"]
+
         health = client.get("/health")
         assert health.status_code == 200, health.text
 
