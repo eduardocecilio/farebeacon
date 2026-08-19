@@ -25,7 +25,7 @@ from farebeacon.application.results import list_latest_offers, list_price_histor
 from farebeacon.domain.money import minor_to_decimal
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
-HISTORY_PAGE_SIZE = 40
+HISTORY_PAGE_SIZE = 8
 OFFER_PAGE_SIZE = 10
 
 router = APIRouter(include_in_schema=False)
