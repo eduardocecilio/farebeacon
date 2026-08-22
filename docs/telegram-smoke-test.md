@@ -175,19 +175,23 @@ A second identical run is also expected to stay silent: the rule cooldown record
 
 ## 8. Confirm that no credential leaked
 
-Check the captured logs for the token without passing it on a command line. `grep -f -` reads the
-pattern from standard input:
+Stream the logs directly into `grep`; do not persist a log copy on the acceptance host. A dedicated
+file descriptor carries the token pattern, so the value stays out of `argv`, the process title, and
+the filesystem:
 
 ```bash
-docker compose logs --no-color > /tmp/farebeacon-smoke.log
-grep -c -F -f - /tmp/farebeacon-smoke.log <<EOF
+LEAK_COUNT=$(
+  docker compose logs --no-color |
+    grep -c -F -f /dev/fd/3 3<<EOF || true
 ${FAREBEACON_TELEGRAM_BOT_TOKEN}
 EOF
-rm -f /tmp/farebeacon-smoke.log
+)
+test "$LEAK_COUNT" -eq 0
 ```
 
-The count must be 0. Repeat the check against any evidence file kept for the record. Screenshots may
-show the alert message and the chat, never `@BotFather`'s token message.
+The command must exit successfully with a count of 0. Repeat the check against any evidence file kept
+for the record. Screenshots may show the alert message and the chat, never `@BotFather`'s token
+message.
 
 ## 9. Diagnose Bot API failures
 
