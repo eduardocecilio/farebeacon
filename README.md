@@ -115,6 +115,11 @@ the egress network. With the default `FAREBEACON_NOTIFICATION_BACKEND=disabled`,
 recorded as `suppressed` and no external request is made. `fake` exists for automated tests and is
 rejected in production.
 
+Before trusting a new deployment, run the procedure in
+[docs/telegram-smoke-test.md](docs/telegram-smoke-test.md). It covers bot creation, chat-id
+discovery, one controlled alert, the replay check, Bot API failure diagnosis, and credential
+cleanup.
+
 The default cooldown is 1,440 minutes and can be changed globally with
 `FAREBEACON_DEFAULT_ALERT_COOLDOWN_MINUTES`. Evaluation chooses the cheapest observation in each run,
 so a source returning several matching offers does not send a burst of equivalent alerts. The first
