@@ -1,0 +1,117 @@
+:root {
+  --ink: #10151c;
+  --ink-soft: #5a6572;
+  --line: #e2e6ea;
+  --surface: #ffffff;
+  --ground: #f6f7f9;
+  --accent: #0b5cd5;
+  --down: #0d8a5f;
+  --up: #b4441f;
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e8ecf1;
+    --ink-soft: #97a2b0;
+    --line: #262d36;
+    --surface: #141a21;
+    --ground: #0d1116;
+    --accent: #6aa6ff;
+    --down: #3fcf94;
+    --up: #ff8a5c;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+main { max-width: 900px; margin: 0 auto; padding: 0 20px 64px; }
+
+.masthead {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; max-width: 900px; margin: 0 auto; padding: 22px 20px;
+}
+.wordmark { font-weight: 650; letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
+.masthead nav { display: flex; gap: 18px; }
+.masthead a { color: var(--ink-soft); text-decoration: none; font-size: 14px; }
+.masthead nav a:hover { color: var(--accent); }
+
+.intro { padding: 12px 0 28px; }
+.intro h1 { margin: 0 0 10px; font-size: 30px; letter-spacing: -0.02em; }
+.intro p { margin: 0; color: var(--ink-soft); max-width: 62ch; }
+.crumb { margin-bottom: 14px !important; font-size: 14px; }
+.crumb a { color: var(--ink-soft); text-decoration: none; }
+.route-line { font-variant-numeric: tabular-nums; }
+
+.cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+@media (min-width: 700px) { .cards { grid-template-columns: 1fr 1fr; } }
+
+.card a {
+  display: block; padding: 20px; text-decoration: none; color: inherit;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.card a:hover { border-color: var(--accent); }
+.card .route { font-size: 13px; letter-spacing: 0.08em; color: var(--ink-soft); }
+.card .route em { font-style: normal; }
+.card h2 { margin: 6px 0 12px; font-size: 19px; }
+.price { margin: 0; font-size: 26px; font-weight: 640; font-variant-numeric: tabular-nums; }
+.meta { margin: 4px 0 0; font-size: 13px; color: var(--ink-soft); }
+
+.facts { display: flex; flex-wrap: wrap; gap: 18px; margin: 16px 0 0; }
+.facts dt { font-size: 12px; color: var(--ink-soft); }
+.facts dd { margin: 2px 0 0; font-size: 14px; }
+
+.panel {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 20px; margin: 20px 0;
+}
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.panel-head h2 { margin: 0; font-size: 17px; }
+
+.chart { margin: 18px 0 8px; }
+.chart svg { width: 100%; height: 160px; display: block; }
+.chart .area { fill: color-mix(in srgb, var(--accent) 12%, transparent); stroke: none; }
+.chart .line { fill: none; stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.chart .line.down { stroke: var(--down); }
+.chart .line.up { stroke: var(--up); }
+.chart figcaption {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums;
+}
+
+table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 14px; }
+th { text-align: left; font-weight: 560; color: var(--ink-soft); font-size: 12px;
+     letter-spacing: 0.04em; text-transform: uppercase; }
+th, td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: none; }
+.numeric { font-variant-numeric: tabular-nums; }
+.strong { font-weight: 620; }
+.detail { color: var(--ink-soft); }
+
+.badge {
+  display: inline-block; padding: 2px 9px; border-radius: 999px;
+  font-size: 12px; border: 1px solid var(--line); color: var(--ink-soft);
+}
+.badge.sent { color: var(--down); border-color: color-mix(in srgb, var(--down) 40%, transparent); }
+.badge.failed { color: var(--up); border-color: color-mix(in srgb, var(--up) 40%, transparent); }
+
+.pager { display: flex; align-items: center; gap: 14px; margin-top: 14px; font-size: 13px;
+         color: var(--ink-soft); }
+.pager button {
+  font: inherit; padding: 5px 12px; border-radius: 7px; cursor: pointer;
+  background: var(--ground); color: var(--ink); border: 1px solid var(--line);
+}
+.pager button:hover { border-color: var(--accent); color: var(--accent); }
+
+.empty { color: var(--ink-soft); }
+
+footer { max-width: 900px; margin: 0 auto; padding: 0 20px 48px; }
+footer p { font-size: 13px; color: var(--ink-soft); margin: 0; max-width: 70ch; }
+code { font-size: 0.92em; }

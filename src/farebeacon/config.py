@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,9 +21,12 @@ class Settings(BaseSettings):
     api_token: SecretStr | None = None
     database_url: str = "sqlite+pysqlite:///./farebeacon.db"
     redis_url: str = "redis://127.0.0.1:6379/0"
+    celery_broker_url: str | None = None
+    celery_result_backend: str | None = None
     artifacts_root: Path = Path(".artifacts")
     log_level: str = "INFO"
     celery_task_always_eager: bool = False
+    demo_read_only: bool = False
     default_source_timeout_seconds: int = Field(default=30, ge=1, le=300)
     max_request_body_bytes: int = Field(default=1_048_576, ge=1024, le=10_485_760)
     max_source_payload_bytes: int = Field(default=4_194_304, ge=1024, le=52_428_800)
@@ -32,6 +35,23 @@ class Settings(BaseSettings):
     telegram_bot_token: SecretStr | None = None
     telegram_chat_id: str | None = None
     telegram_request_timeout_seconds: int = Field(default=10, ge=1, le=60)
+
+    @model_validator(mode="before")
+    @classmethod
+    def ignore_empty_values(cls, data: Any) -> Any:
+        """Treat an empty variable as an absent one.
+
+        Deployment platforms and `.env` files routinely carry a declared name with no value. An
+        empty string is not a boolean, an integer, or a token, and reading it as one turns a blank
+        field into a startup crash instead of the documented default.
+        """
+        if not isinstance(data, dict):
+            return data
+        return {
+            key: value
+            for key, value in data.items()
+            if not (isinstance(value, str) and not value.strip())
+        }
 
     @model_validator(mode="after")
     def reject_insecure_production_configuration(self) -> Settings:
@@ -55,6 +75,23 @@ class Settings(BaseSettings):
             if not self.telegram_chat_id or not self.telegram_chat_id.strip():
                 raise ValueError("Telegram chat id is required for the telegram backend")
         return self
+
+    @property
+    def broker_url(self) -> str:
+        """Celery broker. Redis is the default; a platform broker can replace it."""
+        return self.celery_broker_url or self.redis_url
+
+    @property
+    def result_backend(self) -> str:
+        """Celery result backend, which follows the broker unless it is overridden."""
+        return self.celery_result_backend or self.redis_url
+
+    @property
+    def requires_redis(self) -> bool:
+        """Redis is a runtime dependency only while it backs the broker or the results."""
+        if self.celery_task_always_eager:
+            return False
+        return self.broker_url.startswith("redis") or self.result_backend.startswith("redis")
 
     def require_api_token(self) -> str:
         if self.api_token is None:

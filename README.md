@@ -26,6 +26,7 @@ external provider, scraper, browser, account, or API key.
 - local raw-artifact storage behind a storage port
 - Celery Beat scheduling for due monitors
 - public liveness, readiness, and version endpoints
+- server-rendered read-only interface with price-history charts
 
 No real flight source, scraping, Playwright, WhatsApp integration, booking, payment, or ticket
 issuance is included.
@@ -211,10 +212,23 @@ independent workers.
 
 ## Deployment
 
-The full stack needs long-running workers and a scheduler, so it cannot run entirely on Vercel. A
-future hybrid deployment may put only the stateless HTTP API/web edge on Vercel while PostgreSQL,
-Redis, Celery workers, and Beat run on managed persistent services. That adapter is intentionally
-not claimed as production-ready in this release. See [docs/operations.md](docs/operations.md).
+The Compose stack is the reference topology, and a self-hosted deployment should run it. See
+[docs/operations.md](docs/operations.md) for backup scope, secret handling, and the acceptance
+boundary.
+
+The deployment serves a read-only interface at `/`: monitors, price history with the observed
+trend, normalized offers, and alert delivery state. It renders from the same application services
+the API exposes, so the HTTP API remains the only integration surface.
+
+A reduced public demo can also run on Vercel with no database service, account, cost, or
+configuration: the build command seeds a SQLite database into the deployment bundle, the function
+copies it into its temporary directory at startup, and the deployment applies the demo posture from
+the fact that it is running on that disposable database. The demo answers reads without a token, requires the token for every
+write, and keeps notifications disabled. It deploys the same code through configuration alone —
+there is no separate serverless codebase, and pointing `FAREBEACON_DATABASE_URL` at a managed
+PostgreSQL instance upgrades it to durable state with a queue-backed worker. See
+[docs/vercel-demo.md](docs/vercel-demo.md) and
+[ADR 0004](docs/adr/0004-vercel-demo-deployment.md) for what it trades away.
 
 ## Source policy
 

@@ -3,8 +3,10 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from farebeacon.api.errors import install_error_handlers
 from farebeacon.api.middleware import RequestContextMiddleware
@@ -13,6 +15,7 @@ from farebeacon.application.common import sync_source_definitions
 from farebeacon.config import Settings, get_settings
 from farebeacon.infrastructure.db.session import Database, database
 from farebeacon.sources.registry import get_source_registry
+from farebeacon.web import routes as web
 
 
 def create_app(
@@ -22,7 +25,9 @@ def create_app(
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
     resolved_database = app_database or database
-    resolved_settings.require_api_token()
+    if not resolved_settings.demo_read_only:
+        # A read-only demo needs no write credential: writes are refused rather than authorized.
+        resolved_settings.require_api_token()
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -76,6 +81,12 @@ def create_app(
     application.include_router(results.router)
     application.include_router(alerts.router)
     application.include_router(sources.router)
+    application.include_router(web.router)
+    application.mount(
+        "/static",
+        StaticFiles(directory=str(Path(web.__file__).parent / "static")),
+        name="static",
+    )
     return application
 
 

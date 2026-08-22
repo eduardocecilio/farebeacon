@@ -28,11 +28,24 @@ def get_db(database: Annotated[Database, Depends(get_database)]) -> Iterator[Ses
         yield session
 
 
+READ_ONLY_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
 def require_authentication(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> None:
-    configured_token = settings.require_api_token()
+    if settings.demo_read_only and request.method in READ_ONLY_METHODS:
+        return
+    if settings.api_token is None:
+        raise AppError(
+            code="AUTHENTICATION_REQUIRED",
+            message="This deployment has no API token, so writes are disabled.",
+            status_code=401,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    configured_token = settings.api_token.get_secret_value()
     valid = (
         credentials is not None
         and credentials.scheme.lower() == "bearer"

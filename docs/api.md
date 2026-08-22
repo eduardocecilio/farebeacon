@@ -3,7 +3,9 @@
 ## Base path and authentication
 
 Application operations use `/api/v1` and Bearer authentication. `/health`, `/ready`, `/version`,
-`/docs`, and `/openapi.json` are public.
+`/docs`, and `/openapi.json` are public. The read-only interface under `/` and its assets under
+`/static` are public as well; it renders from the same application services rather than calling this
+API over HTTP from inside the process.
 
 ## Envelopes
 

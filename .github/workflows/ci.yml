@@ -47,6 +47,14 @@ jobs:
         run: docker run --rm farebeacon:test mypy src
       - name: Tests
         run: docker run --rm farebeacon:test pytest --cov=farebeacon --cov-report=term-missing
+      - name: Demo build and deployment boot
+        run: |
+          docker run --rm --user root -v "$PWD:/work" -w /work farebeacon:test python build_demo_db.py
+          test -s demo.db
+          sudo rm -f demo.db
+          docker run --rm --user root -v "$PWD:/work" -w /work \
+            farebeacon:test python build_demo_db.py --verify
+
       - name: OpenAPI generation
         run: >-
           docker run --rm

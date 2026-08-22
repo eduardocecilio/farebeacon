@@ -5,6 +5,13 @@ from collections.abc import Iterator
 from fastapi.testclient import TestClient
 
 
+def test_the_root_serves_the_interface_without_a_token(client: TestClient) -> None:
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "FareBeacon" in response.text
+
+
 def test_authentication_error_uses_stable_envelope(client: TestClient) -> None:
     response = client.get("/api/v1/monitors")
     assert response.status_code == 401

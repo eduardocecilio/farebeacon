@@ -64,7 +64,12 @@ networks, resource sizing, and live post-deploy checks.
 
 ## Vercel
 
-The complete system is not suitable for Vercel alone because it requires persistent Celery workers,
-Beat, Redis, PostgreSQL, and later isolated browser automation. A supported hybrid topology would
-need a dedicated serverless ASGI entrypoint plus externally hosted PostgreSQL/Redis and a separate
-worker platform. Those pieces and their production review are not part of this release.
+A reduced public demo runs on Vercel: the API on the Python runtime and a disposable database built
+into the deployment bundle. It is configuration only, and the procedure is in
+[the demo deployment guide](vercel-demo.md).
+
+That deployment is a demo, not a production promotion. It has no persistent worker process, no
+Celery Beat, no durable artifact store, and no per-service secret isolation, and it deliberately runs
+with notifications disabled. A self-hosted deployment that owns real monitors, real history, and
+real Telegram delivery should run the Compose topology, and later isolated browser automation
+requires it. See [ADR 0004](adr/0004-vercel-demo-deployment.md).
